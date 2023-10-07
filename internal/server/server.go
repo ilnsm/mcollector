@@ -1,65 +1,82 @@
 package server
 
 import (
+	"fmt"
+	"github.com/ilnsm/mcollector/internal/storage"
+	memoryStorage "github.com/ilnsm/mcollector/internal/storage/memory"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
-type MemStorage struct {
-	counter map[string]int64
-	gauge   map[string]float64
-}
-
-var ms = MemStorage{gauge: make(map[string]float64), counter: make(map[string]int64)}
-
 func Run() error {
+
+	ms, err := memoryStorage.New()
+	if err != nil {
+		log.Fatal("could not inizialize storage")
+	}
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/update/", updateMetrics)
-
+	mux.HandleFunc("/update/gauge/", updateGauge(ms))
+	mux.HandleFunc("/update/counter/", updateCaunter(ms))
+	mux.HandleFunc("/", handleBadRequest)
 	return http.ListenAndServe("localhost:8080", mux)
 }
 
-func updateMetrics(w http.ResponseWriter, r *http.Request) {
+func handleBadRequest(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusBadRequest)
+	return
+}
 
-	//if ct := r.Header.Get("Content-Type"); ct != "text/plain" {
-	//	http.Error(w, "Unsupported Media Type", http.StatusUnsupportedMediaType)
-	//}
+func updateGauge(s storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		parts := strings.Split(r.URL.Path, "/")
 
-	parts := strings.Split(r.URL.Path, "/")
-
-	//metric has no value
-	if len(parts) < 5 {
-		http.Error(w, "Not Found", http.StatusNotFound)
-		return
-	}
-
-	//metric has no name
-	metricName := parts[3]
-	if metricName == "" {
-		http.Error(w, "Not Found", http.StatusNotFound)
-		return
-	}
-
-	switch parts[2] {
-	case "counter":
-		v, err := strconv.ParseInt(parts[4], 10, 64)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
+		//metric has no value
+		if len(parts) < 5 {
+			http.Error(w, "Not Found", http.StatusNotFound)
+			return
 		}
 
-		ms.counter[parts[3]] += v
-	case "gauge":
-		v, err := strconv.ParseFloat(parts[4], 64)
+		//metric has no name
+		metricName, metricValue := parts[3], parts[4]
+
+		v, err := strconv.ParseFloat(metricValue, 64)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
+			fmt.Println("error convert string to int64")
+			http.Error(w, "Not Found", http.StatusBadRequest)
+		}
+		err = s.InsertGauge(metricName, v)
+		if err != nil {
+			http.Error(w, "Not Found", http.StatusBadRequest)
+		}
+	}
+}
+
+func updateCaunter(s storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		parts := strings.Split(r.URL.Path, "/")
+
+		//metric has no value
+		if len(parts) < 5 {
+			http.Error(w, "Not Found", http.StatusNotFound)
+			return
 		}
 
-		ms.gauge[parts[3]] = v
-	default:
-		http.Error(w, "Metric's type does not support", http.StatusBadRequest)
-		return
+		//metric has no name
+		metricName, metricValue := parts[3], parts[4]
+
+		v, err := strconv.ParseInt(metricValue, 10, 64)
+		if err != nil {
+			fmt.Println("error convert string to int64")
+			http.Error(w, "Not Found", http.StatusBadRequest)
+		}
+		err = s.InsertCounter(metricName, v)
+
+		if err != nil {
+			http.Error(w, "Not Found", http.StatusBadRequest)
+		}
 	}
 }
