@@ -24,7 +24,7 @@ func handleBadRequest(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func updateGauge(s storage.Storage) http.HandlerFunc {
+func updateGauge(s storage.Storager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parts := strings.Split(r.URL.Path, "/")
 
@@ -48,7 +48,7 @@ func updateGauge(s storage.Storage) http.HandlerFunc {
 	}
 }
 
-func updateCaunter(s storage.Storage) http.HandlerFunc {
+func updateCaunter(s storage.Storager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parts := strings.Split(r.URL.Path, "/")
 

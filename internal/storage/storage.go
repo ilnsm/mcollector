@@ -1,6 +1,6 @@
 package storage
 
-type Storage interface {
+type Storager interface {
 	InsertGauge(k string, v float64) error
 	InsertCounter(k string, v int64) error
 	//Update(k,v string) error
