@@ -35,7 +35,7 @@ func updateGauge(s storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parts := strings.Split(r.URL.Path, "/")
 
-		err := mustNameAndValue(parts)
+		err := mustHaveNameAndValue(parts)
 		if err != nil {
 			http.Error(w, "Not Found", http.StatusNotFound)
 			return
@@ -59,7 +59,7 @@ func updateCaunter(s storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parts := strings.Split(r.URL.Path, "/")
 
-		err := mustNameAndValue(parts)
+		err := mustHaveNameAndValue(parts)
 		if err != nil {
 			http.Error(w, "Not Found", http.StatusNotFound)
 			return
@@ -80,7 +80,7 @@ func updateCaunter(s storage.Storage) http.HandlerFunc {
 	}
 }
 
-func mustNameAndValue(p []string) error {
+func mustHaveNameAndValue(p []string) error {
 	if len(p) < 5 {
 		return errors.New("mertric has no name or value")
 	}
