@@ -4,24 +4,17 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ilnsm/mcollector/internal/storage"
-	memoryStorage "github.com/ilnsm/mcollector/internal/storage/memory"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
-func Run() error {
-
-	ms, err := memoryStorage.New()
-	if err != nil {
-		log.Fatal("could not inizialize storage")
-	}
+func Run(s storage.Storage) error {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/update/gauge/", updateGauge(ms))
-	mux.HandleFunc("/update/counter/", updateCaunter(ms))
+	mux.HandleFunc("/update/gauge/", updateGauge(s))
+	mux.HandleFunc("/update/counter/", updateCaunter(s))
 	mux.HandleFunc("/", handleBadRequest)
 	return http.ListenAndServe("localhost:8080", mux)
 }
