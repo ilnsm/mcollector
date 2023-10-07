@@ -1,4 +1,4 @@
-package memoryStorage
+package memorystorage
 
 type MemStorage struct {
 	counter map[string]int64

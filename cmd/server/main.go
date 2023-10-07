@@ -2,13 +2,13 @@ package main
 
 import (
 	"github.com/ilnsm/mcollector/internal/server"
-	memoryStorage "github.com/ilnsm/mcollector/internal/storage/memory"
+	"github.com/ilnsm/mcollector/internal/storage/memory"
 	"log"
 )
 
 func main() {
 	//TODO: parse config
-	s, err := memoryStorage.New()
+	s, err := memorystorage.New()
 	if err != nil {
 		log.Fatal("could not inizialize storage")
 	}
