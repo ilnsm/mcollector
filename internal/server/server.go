@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"github.com/ilnsm/mcollector/internal/storage"
 	memoryStorage "github.com/ilnsm/mcollector/internal/storage/memory"
@@ -34,13 +35,12 @@ func updateGauge(s storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parts := strings.Split(r.URL.Path, "/")
 
-		//metric has no value
-		if len(parts) < 5 {
+		err := mustNameAndValue(parts)
+		if err != nil {
 			http.Error(w, "Not Found", http.StatusNotFound)
 			return
 		}
 
-		//metric has no name
 		metricName, metricValue := parts[3], parts[4]
 
 		v, err := strconv.ParseFloat(metricValue, 64)
@@ -59,13 +59,12 @@ func updateCaunter(s storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parts := strings.Split(r.URL.Path, "/")
 
-		//metric has no value
-		if len(parts) < 5 {
+		err := mustNameAndValue(parts)
+		if err != nil {
 			http.Error(w, "Not Found", http.StatusNotFound)
 			return
 		}
 
-		//metric has no name
 		metricName, metricValue := parts[3], parts[4]
 
 		v, err := strconv.ParseInt(metricValue, 10, 64)
@@ -79,4 +78,11 @@ func updateCaunter(s storage.Storage) http.HandlerFunc {
 			http.Error(w, "Not Found", http.StatusBadRequest)
 		}
 	}
+}
+
+func mustNameAndValue(p []string) error {
+	if len(p) < 5 {
+		return errors.New("mertric has no name or value")
+	}
+	return nil
 }
