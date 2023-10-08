@@ -1,8 +1,7 @@
 package server
 
 import (
-	"errors"
-	"fmt"
+	"github.com/go-chi/chi/v5"
 	"github.com/ilnsm/mcollector/internal/storage"
 	"net/http"
 	"strconv"
@@ -11,36 +10,55 @@ import (
 
 func Run(s storage.Storager) error {
 
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/update/gauge/", updateGauge(s))
-	mux.HandleFunc("/update/counter/", updateCounter(s))
-	mux.HandleFunc("/", handleBadRequest)
-	return http.ListenAndServe("localhost:8080", mux)
+	return http.ListenAndServe("localhost:8080", MetrRouter(s))
 }
 
-func handleBadRequest(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusBadRequest)
+func MetrRouter(s storage.Storager) chi.Router {
+
+	r := chi.NewRouter()
+	r.Use(checkMetricType)
+
+	r.Route("/update", func(r chi.Router) {
+		r.Post("/gauge/{gName}/{gValue}", updateGauge(s))
+		r.Post("/counter/{cName}/{cValue}", updateCounter(s))
+	})
+
+	r.Get("/", listAllMetrics(s))
+
+	r.Route("/value", func(r chi.Router) {
+		r.Get("/gauge/{gName}", getGauge(s))
+		r.Get("/counter/{cName}", getCounter(s))
+
+	})
+	return r
+}
+
+func checkMetricType(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		p := r.URL.Path
+		if len(p) > 2 {
+			parts := strings.Split(p, "/")
+			if parts[2] != "gauge" && parts[2] != "counter" {
+				w.WriteHeader(http.StatusBadRequest)
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func updateGauge(s storage.Storager) http.HandlerFunc {
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		parts := strings.Split(r.URL.Path, "/")
 
-		err := mustHaveNameAndValue(parts)
+		gName, gValue := chi.URLParam(r, "gName"), chi.URLParam(r, "gValue")
+
+		v, err := strconv.ParseFloat(gValue, 64)
 		if err != nil {
-			http.NotFound(w, r)
-			return
-		}
-
-		metricName, metricValue := parts[3], parts[4]
-
-		v, err := strconv.ParseFloat(metricValue, 64)
-		if err != nil {
-			fmt.Println("error convert string to int64")
+			//fmt.Println("error convert string to int64")
 			http.Error(w, "Bad request", http.StatusBadRequest)
 		}
-		err = s.InsertGauge(metricName, v)
+		err = s.InsertGauge(gName, v)
 		if err != nil {
 			http.Error(w, "Not Found", http.StatusBadRequest)
 		}
@@ -49,21 +67,14 @@ func updateGauge(s storage.Storager) http.HandlerFunc {
 
 func updateCounter(s storage.Storager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		parts := strings.Split(r.URL.Path, "/")
 
-		err := mustHaveNameAndValue(parts)
-		if err != nil {
-			http.NotFound(w, r)
-			return
-		}
+		cName, cValue := chi.URLParam(r, "cName"), chi.URLParam(r, "cValue")
 
-		metricName, metricValue := parts[3], parts[4]
-
-		v, err := strconv.ParseInt(metricValue, 10, 64)
+		v, err := strconv.ParseInt(cValue, 10, 64)
 		if err != nil {
 			http.Error(w, "Bad request", http.StatusBadRequest)
 		}
-		err = s.InsertCounter(metricName, v)
+		err = s.InsertCounter(cName, v)
 
 		if err != nil {
 			http.Error(w, "Not Found", http.StatusBadRequest)
@@ -71,9 +82,39 @@ func updateCounter(s storage.Storager) http.HandlerFunc {
 	}
 }
 
-func mustHaveNameAndValue(p []string) error {
-	if len(p) < 5 {
-		return errors.New("mertric has no name or value")
+func getGauge(s storage.Storager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		k := chi.URLParam(r, "gName")
+		v, err := s.SelectGauge(k)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Write([]byte(strconv.FormatFloat(v, 'g', -1, 64)))
+
 	}
-	return nil
+}
+func getCounter(s storage.Storager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		k := chi.URLParam(r, "cName")
+		v, err := s.SelectCounter(k)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Write([]byte(strconv.FormatInt(v, 10)))
+	}
+}
+
+func listAllMetrics(s storage.Storager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		k := chi.URLParam(r, "cName")
+		v, err := s.SelectCounter(k)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Write([]byte(strconv.FormatInt(v, 10)))
+	}
 }

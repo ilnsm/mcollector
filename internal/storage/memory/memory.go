@@ -1,5 +1,7 @@
 package memorystorage
 
+import "errors"
+
 type MemStorage struct {
 	counter map[string]int64
 	gauge   map[string]float64
@@ -17,4 +19,20 @@ func (m *MemStorage) InsertGauge(k string, v float64) error {
 func (m *MemStorage) InsertCounter(k string, v int64) error {
 	m.counter[k] += v
 	return nil
+}
+
+func (m *MemStorage) SelectGauge(k string) (float64, error) {
+	//todo: check if key exists
+	if v, ok := m.gauge[k]; ok {
+		return v, nil
+	}
+	return 0, errors.New("gauge does not exist")
+}
+
+func (m *MemStorage) SelectCounter(k string) (int64, error) {
+
+	if v, ok := m.counter[k]; ok {
+		return v, nil
+	}
+	return 0, errors.New("counter does not exist")
 }
