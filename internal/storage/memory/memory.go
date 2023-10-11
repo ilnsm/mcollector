@@ -36,3 +36,10 @@ func (m *MemStorage) SelectCounter(k string) (int64, error) {
 	}
 	return 0, errors.New("counter does not exist")
 }
+
+func (m *MemStorage) GetCounters() map[string]int64 {
+	return m.counter
+}
+func (m *MemStorage) GetGauges() map[string]float64 {
+	return m.gauge
+}

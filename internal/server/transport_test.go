@@ -22,6 +22,13 @@ func (s *MockStorage) SelectCounter(k string) (int64, error) {
 	return 0, nil
 }
 
+func (s *MockStorage) GetCounters() map[string]int64 {
+	return nil
+}
+func (s *MockStorage) GetGauges() map[string]float64 {
+	return nil
+}
+
 //func TestUpdateGaugeHandler(t *testing.T) {
 //	// Create a mock storage
 //	storage := &MockStorage{}
