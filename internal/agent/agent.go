@@ -3,6 +3,8 @@ package agent
 import (
 	"errors"
 	"fmt"
+	"github.com/ilnsm/mcollector/internal/agent/config"
+	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -10,46 +12,48 @@ import (
 	"time"
 )
 
-const endpoint = "http://localhost:8080/update"
-const pollInterval = time.Second * 2
-const reportInterval = time.Second * 10
-
 func Run() {
 
+	cfg, err := config.New()
+	if err != nil {
+		log.Fatal("Could not get config")
+	}
+
+	fmt.Printf("Start server\nPush to %s\nCollecting metrigs every %s seconds\n"+
+		"Send metrics every %s seconds\n", cfg.Endpoint, cfg.PollInterval, cfg.ReportInterval)
 	m := runtime.MemStats{}
 	client := &http.Client{}
-	var counter int
+	var pollCounter int
 
 	for {
 
-		metrics, err := GetMetrics(&m, pollInterval)
+		metrics, err := GetMetrics(&m, time.Duration(cfg.PollInterval)*time.Second)
 		if err != nil {
 			fmt.Println("could not get metrics")
 		}
 
 		for name, value := range metrics {
 
-			err := makeReq("gauge", name, value, client)
+			err := makeReq(cfg.Endpoint, "gauge", name, value, client)
 			if err != nil {
 				fmt.Println("could create request")
 			}
 
 		}
 
-		err = makeReq("counter", "PollCount", strconv.Itoa(counter), client)
+		err = makeReq(cfg.Endpoint, "pollCounter", "PollCount", strconv.Itoa(pollCounter), client)
 		if err != nil {
 			fmt.Println("could create request")
 		}
 
 		randomFloat := rand.Float64()
 
-		err = makeReq("gauge", "RandomValue", strconv.FormatFloat(randomFloat, 'f', -1, 64), client)
+		err = makeReq(cfg.Endpoint, "gauge", "RandomValue", strconv.FormatFloat(randomFloat, 'f', -1, 64), client)
 		if err != nil {
 			fmt.Println("could create request")
 		}
 
-		counter++
-		time.Sleep(reportInterval)
+		time.Sleep(time.Duration(cfg.ReportInterval) * time.Second)
 	}
 }
 
@@ -65,7 +69,7 @@ func doRequest(request *http.Request, client *http.Client) {
 	}
 }
 
-func makeReq(mtype, name, value string, client *http.Client) error {
+func makeReq(endpoint, mtype, name, value string, client *http.Client) error {
 	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/%s/%s/%s", endpoint, mtype, name, value), nil)
 	if err != nil {
 		return errors.New("could create request")

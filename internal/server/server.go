@@ -34,7 +34,7 @@ func Run(s storage.Storager) error {
 
 	cfg, err := config.New()
 	if err != nil {
-		log.Fatal("could not get config")
+		log.Fatal("Could not get config")
 	}
 
 	fmt.Println("Start server on", cfg.Endpoint)
