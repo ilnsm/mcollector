@@ -29,12 +29,13 @@ const htmlTemplate = `
 </html>
 `
 
-var serverConfig struct {
-	endpoint string
-}
-
 func Run(s storage.Storager) error {
-	config.ParseFlag()
-	fmt.Printf("Start server on %s", config.FlagServerEndpoint)
-	return http.ListenAndServe(config.FlagServerEndpoint, MetrRouter(s))
+
+	cfg, err := config.New()
+	if err != nil {
+		fmt.Println("could not get config")
+	}
+
+	fmt.Println("Start server on", cfg.Endpoint)
+	return http.ListenAndServe(cfg.Endpoint, MetrRouter(s))
 }
