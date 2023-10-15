@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const pollCounter = 1
+
 func Run() {
 
 	cfg, err := config.New()
@@ -23,7 +25,6 @@ func Run() {
 		"Send metrics every %s seconds\n", cfg.Endpoint, cfg.PollInterval, cfg.ReportInterval)
 	m := runtime.MemStats{}
 	client := &http.Client{}
-	var pollCounter int
 
 	for {
 
@@ -41,7 +42,7 @@ func Run() {
 
 		}
 
-		err = makeReq(cfg.Endpoint, "pollCounter", "PollCount", strconv.Itoa(pollCounter), client)
+		err = makeReq(cfg.Endpoint, "counter", "PollCount", strconv.Itoa(pollCounter), client)
 		if err != nil {
 			fmt.Println("could create request")
 		}
