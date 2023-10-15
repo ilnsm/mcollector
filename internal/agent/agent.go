@@ -21,14 +21,14 @@ func Run() {
 		log.Fatal("Could not get config")
 	}
 
-	fmt.Printf("Start server\nPush to %s\nCollecting metrigs every %d seconds\n"+
-		"Send metrics every %d seconds\n", cfg.Endpoint, cfg.PollInterval, cfg.ReportInterval)
+	fmt.Printf("Start server\nPush to %s\nCollecting metrigs every %v\n"+
+		"Send metrics every %v\n", cfg.Endpoint, cfg.PollInterval, cfg.ReportInterval)
 	m := runtime.MemStats{}
 	client := &http.Client{}
 
 	for {
 
-		metrics, err := GetMetrics(&m, time.Duration(cfg.PollInterval)*time.Second)
+		metrics, err := GetMetrics(&m, cfg.PollInterval)
 		if err != nil {
 			fmt.Println("could not get metrics")
 		}
@@ -54,7 +54,7 @@ func Run() {
 			fmt.Println("could create request")
 		}
 
-		time.Sleep(time.Duration(cfg.ReportInterval) * time.Second)
+		time.Sleep(cfg.ReportInterval)
 	}
 }
 
