@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/ilnsm/mcollector/internal/storage"
 	"html/template"
@@ -122,7 +121,6 @@ func listAllMetrics(s storage.Storager) http.HandlerFunc {
 			data[i] = strconv.FormatFloat(v, 'f', -1, 64)
 		}
 		err = tmpl.Execute(w, data)
-		fmt.Println(data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
