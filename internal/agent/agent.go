@@ -30,7 +30,7 @@ func Run() {
 
 	for {
 
-		metrics, err := GetMetrics(&m, cfg.PollInterval)
+		metrics, err := GetMetrics(&m, time.Duration(cfg.PollInterval)*time.Second)
 		if err != nil {
 			fmt.Println("could not get metrics")
 		}
@@ -56,7 +56,7 @@ func Run() {
 			fmt.Println("could create request")
 		}
 
-		time.Sleep(cfg.ReportInterval)
+		time.Sleep(time.Duration(cfg.ReportInterval) * time.Second)
 	}
 }
 

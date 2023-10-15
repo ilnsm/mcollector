@@ -3,13 +3,12 @@ package config
 import (
 	"fmt"
 	"github.com/caarlos0/env/v9"
-	"time"
 )
 
 type Config struct {
-	Endpoint       string        `env:"ADDRESS"`
-	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
-	PollInterval   time.Duration `env:"POLL_INTERVAL"`
+	Endpoint       string `env:"ADDRESS"`
+	ReportInterval int    `env:"REPORT_INTERVAL"`
+	PollInterval   int    `env:"POLL_INTERVAL"`
 }
 
 func New() (Config, error) {
