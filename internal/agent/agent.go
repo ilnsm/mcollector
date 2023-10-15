@@ -13,6 +13,8 @@ import (
 )
 
 const pollCounter = 1
+const deafaultSchema = "http://"
+const updatePath = "/update"
 
 func Run() {
 
@@ -71,6 +73,7 @@ func doRequest(request *http.Request, client *http.Client) {
 }
 
 func makeReq(endpoint, mtype, name, value string, client *http.Client) error {
+	endpoint = deafaultSchema + endpoint + updatePath
 	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/%s/%s/%s", endpoint, mtype, name, value), nil)
 	if err != nil {
 		return errors.New("could create request")
