@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ilnsm/mcollector/internal/server/config"
 	"github.com/ilnsm/mcollector/internal/storage"
+	"log"
 	"net/http"
 )
 
@@ -33,7 +34,7 @@ func Run(s storage.Storager) error {
 
 	cfg, err := config.New()
 	if err != nil {
-		fmt.Println("could not get config")
+		log.Fatal("could not get config")
 	}
 
 	fmt.Println("Start server on", cfg.Endpoint)
