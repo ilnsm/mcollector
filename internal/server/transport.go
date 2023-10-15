@@ -10,11 +10,6 @@ import (
 	"strings"
 )
 
-func Run(s storage.Storager) error {
-
-	return http.ListenAndServe("localhost:8080", MetrRouter(s))
-}
-
 func MetrRouter(s storage.Storager) chi.Router {
 
 	r := chi.NewRouter()

@@ -1,5 +1,12 @@
 package server
 
+import (
+	"fmt"
+	"github.com/ilnsm/mcollector/internal/server/config"
+	"github.com/ilnsm/mcollector/internal/storage"
+	"net/http"
+)
+
 const htmlTemplate = `
 <!DOCTYPE html>
 <html>
@@ -21,3 +28,13 @@ const htmlTemplate = `
 </body>
 </html>
 `
+
+var serverConfig struct {
+	endpoint string
+}
+
+func Run(s storage.Storager) error {
+	config.ParseFlag()
+	fmt.Printf("Start server on %s", config.FlagServerEndpoint)
+	return http.ListenAndServe(config.FlagServerEndpoint, MetrRouter(s))
+}
