@@ -7,7 +7,6 @@ import (
 )
 
 func main() {
-	//TODO: parse config
 	s, err := memorystorage.New()
 	if err != nil {
 		log.Fatal("could not inizialize storage")

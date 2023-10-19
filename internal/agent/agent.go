@@ -39,37 +39,38 @@ func Run() {
 
 			err := makeReq(cfg.Endpoint, "gauge", name, value, client)
 			if err != nil {
-				fmt.Println("could create request")
+				fmt.Println("could create request: ", err)
 			}
 
 		}
 
 		err = makeReq(cfg.Endpoint, "counter", "PollCount", strconv.Itoa(pollCounter), client)
 		if err != nil {
-			fmt.Println("could create request")
+			fmt.Println("could create request: ", err)
 		}
 
 		randomFloat := rand.Float64()
 
 		err = makeReq(cfg.Endpoint, "gauge", "RandomValue", strconv.FormatFloat(randomFloat, 'f', -1, 64), client)
 		if err != nil {
-			fmt.Println("could create request")
+			fmt.Println("could create request: ", err)
 		}
 
 		time.Sleep(time.Duration(cfg.ReportInterval) * time.Second)
 	}
 }
 
-func doRequest(request *http.Request, client *http.Client) {
+func doRequest(request *http.Request, client *http.Client) error {
 	request.Header.Add("Content-Type", "text/plain")
 	r, err := client.Do(request)
 	if err != nil {
-		fmt.Printf("could not do request: %s", request.RequestURI)
+		return err
 	}
 	err = r.Body.Close()
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
+	return nil
 }
 
 func makeReq(endpoint, mtype, name, value string, client *http.Client) error {
@@ -78,6 +79,9 @@ func makeReq(endpoint, mtype, name, value string, client *http.Client) error {
 	if err != nil {
 		return errors.New("could create request")
 	}
-	doRequest(request, client)
+	err = doRequest(request, client)
+	if err != nil {
+		return err
+	}
 	return nil
 }

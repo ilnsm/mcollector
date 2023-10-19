@@ -29,46 +29,6 @@ func (s *MockStorage) GetGauges() map[string]float64 {
 	return nil
 }
 
-//func TestUpdateGaugeHandler(t *testing.T) {
-//	// Create a mock storage
-//	storage := &MockStorage{}
-//
-//	// Create a request
-//	req := httptest.NewRequest("GET", "/update/gauge/metricName/123.45", nil)
-//	w := httptest.NewRecorder()
-//
-//	// Call the handler
-//	handler := updateGauge(storage)
-//	handler(w, req)
-//
-//	// Check the response status code
-//	if w.Code != http.StatusOK {
-//		t.Errorf("Expected status code %d, but got %d", http.StatusOK, w.Code)
-//	}
-//
-//	// You can add more specific tests here if needed
-//}
-//
-//func TestUpdateCounterHandler(t *testing.T) {
-//	// Create a mock storage
-//	storage := &MockStorage{}
-//
-//	// Create a request
-//	req := httptest.NewRequest("GET", "/update/counter/metricName/123", nil)
-//	w := httptest.NewRecorder()
-//
-//	// Call the handler
-//	handler := updateCounter(storage)
-//	handler(w, req)
-//
-//	// Check the response status code
-//	if w.Code != http.StatusOK {
-//		t.Errorf("Expected status code %d, but got %d", http.StatusOK, w.Code)
-//	}
-//
-//	// You can add more specific tests here if needed
-//}
-
 func TestUpdateGaugeHandlerInvalidURL(t *testing.T) {
 	// Create a mock storage
 	storage := &MockStorage{}

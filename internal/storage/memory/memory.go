@@ -22,7 +22,6 @@ func (m *MemStorage) InsertCounter(k string, v int64) error {
 }
 
 func (m *MemStorage) SelectGauge(k string) (float64, error) {
-	//todo: check if key exists
 	if v, ok := m.gauge[k]; ok {
 		return v, nil
 	}

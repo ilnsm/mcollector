@@ -51,7 +51,6 @@ func updateGauge(s storage.Storager) http.HandlerFunc {
 
 		v, err := strconv.ParseFloat(gValue, 64)
 		if err != nil {
-			//fmt.Println("error convert string to int64")
 			http.Error(w, "Bad request", http.StatusBadRequest)
 		}
 		err = s.InsertGauge(gName, v)
