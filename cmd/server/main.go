@@ -2,16 +2,28 @@ package main
 
 import (
 	"github.com/ilnsm/mcollector/internal/server"
+	"github.com/ilnsm/mcollector/internal/server/config"
 	"github.com/ilnsm/mcollector/internal/storage/memory"
-	"log"
+	"github.com/rs/zerolog"
 )
 
 func main() {
-	s, err := memorystorage.New()
+
+	logger := zerolog.Logger{}
+
+	storage, err := memorystorage.New()
 	if err != nil {
-		log.Fatal("could not inizialize storage")
+		logger.Fatal().Err(err).Send()
 	}
-	if err := server.Run(s); err != nil {
-		panic(err)
+
+	cfg, err := config.New()
+	if err != nil {
+		logger.Fatal().Err(err).Send()
+	}
+
+	api := server.New(cfg, logger, storage)
+
+	if err := api.Run(); err != nil {
+		logger.Fatal().Err(err).Send()
 	}
 }
