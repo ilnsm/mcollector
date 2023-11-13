@@ -7,6 +7,7 @@ import (
 
 type Config struct {
 	Endpoint string `env:"ADDRESS"`
+	LogLevel string `env:"LOG_LEVEL"`
 }
 
 func New() (Config, error) {

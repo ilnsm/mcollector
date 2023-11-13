@@ -9,26 +9,6 @@ import (
 	"strings"
 )
 
-func MetrRouter(s storage.Storager) chi.Router {
-
-	r := chi.NewRouter()
-	r.Use(checkMetricType)
-
-	r.Route("/update", func(r chi.Router) {
-		r.Post("/gauge/{gName}/{gValue}", updateGauge(s))
-		r.Post("/counter/{cName}/{cValue}", updateCounter(s))
-	})
-
-	r.Get("/", listAllMetrics(s))
-
-	r.Route("/value", func(r chi.Router) {
-		r.Get("/gauge/{gName}", getGauge(s))
-		r.Get("/counter/{cName}", getCounter(s))
-
-	})
-	return r
-}
-
 const htmlTemplate = `
 <!DOCTYPE html>
 <html>
