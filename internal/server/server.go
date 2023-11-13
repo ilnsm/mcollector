@@ -5,7 +5,6 @@ import (
 	"github.com/ilnsm/mcollector/internal/server/config"
 	"github.com/ilnsm/mcollector/internal/server/middleware/logger"
 	"github.com/ilnsm/mcollector/internal/storage"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"net/http"
 )
@@ -15,7 +14,7 @@ type API struct {
 	storage storage.Storager
 }
 
-func New(cfg config.Config, l zerolog.Logger, s storage.Storager) *API {
+func New(cfg config.Config, s storage.Storager) *API {
 	return &API{
 		cfg:     cfg,
 		storage: s,

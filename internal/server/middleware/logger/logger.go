@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog/log"
 	"net/http"
 	"time"
@@ -12,12 +13,18 @@ func RequestLogger(next http.Handler) http.Handler {
 		uri := r.RequestURI
 		method := r.Method
 
-		next.ServeHTTP(w, r)
-		duration := time.Since(start)
+		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
-		log.Info().
-			Str("URI", uri).
-			Str("Method", method).
-			Str("Duration", duration.String()).
+		defer func() {
+			log.Info().
+				Str("URI", uri).
+				Str("Method", method).
+				Str("Duration", time.Since(start).String()).
+				Int("Bytes", ww.BytesWritten()).
+				Int("Status", ww.Status()).
+				Msg("")
+		}()
+
+		next.ServeHTTP(ww, r)
 	})
 }
