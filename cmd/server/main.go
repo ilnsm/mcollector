@@ -5,7 +5,6 @@ import (
 	"github.com/ilnsm/mcollector/internal/server/config"
 	"github.com/ilnsm/mcollector/internal/storage/memory"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"os"
 )
 
@@ -24,11 +23,8 @@ func main() {
 	}
 
 	setLogLevel(cfg.LogLevel)
-	api := server.New(cfg, logger, storage)
-	log.Debug().Msg("This is a debug message")
-	log.Info().Msg("This is an info message")
-	log.Warn().Msg("This is a warning message")
-	log.Error().Msg("This is an error message")
+	api := server.New(cfg, storage)
+
 	if err := api.Run(); err != nil {
 		logger.Fatal().Err(err).Send()
 	}
