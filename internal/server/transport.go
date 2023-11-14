@@ -59,6 +59,8 @@ func updateGauge(s storage.Storager) http.HandlerFunc {
 		if err != nil {
 			http.Error(w, "Not Found", http.StatusBadRequest)
 		}
+
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
@@ -76,6 +78,8 @@ func updateCounter(s storage.Storager) http.HandlerFunc {
 		if err != nil {
 			http.Error(w, "Not Found", http.StatusBadRequest)
 		}
+
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
