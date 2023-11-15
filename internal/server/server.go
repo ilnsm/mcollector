@@ -4,6 +4,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/ilnsm/mcollector/internal/server/config"
 	"github.com/ilnsm/mcollector/internal/server/middleware/logger"
+	"github.com/ilnsm/mcollector/internal/server/transport"
 	"github.com/ilnsm/mcollector/internal/storage"
 	"github.com/rs/zerolog/log"
 	"net/http"
@@ -27,18 +28,18 @@ func (a *API) Run() error {
 
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger)
-	r.Use(checkMetricType)
+	r.Use(transport.CheckMetricType)
 
 	r.Route("/update", func(r chi.Router) {
-		r.Post("/gauge/{gName}/{gValue}", updateGauge(a.storage))
-		r.Post("/counter/{cName}/{cValue}", updateCounter(a.storage))
+		r.Post("/gauge/{gName}/{gValue}", transport.UpdateGauge(a.storage))
+		r.Post("/counter/{cName}/{cValue}", transport.UpdateCounter(a.storage))
 	})
 
-	r.Get("/", listAllMetrics(a.storage))
+	r.Get("/", transport.ListAllMetrics(a.storage))
 
 	r.Route("/value", func(r chi.Router) {
-		r.Get("/gauge/{gName}", getGauge(a.storage))
-		r.Get("/counter/{cName}", getCounter(a.storage))
+		r.Get("/gauge/{gName}", transport.GetGauge(a.storage))
+		r.Get("/counter/{cName}", transport.GetCounter(a.storage))
 
 	})
 
