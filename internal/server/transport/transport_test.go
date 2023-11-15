@@ -38,7 +38,7 @@ func TestUpdateGaugeHandlerInvalidURL(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	// Call the handler
-	handler := updateGauge(storage)
+	handler := UpdateGauge(storage)
 	handler(w, req)
 
 	if w.Code != http.StatusBadRequest {
@@ -55,7 +55,7 @@ func TestUpdateCounterHandlerInvalidValue(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	// Call the handler
-	handler := updateCounter(storage)
+	handler := UpdateCounter(storage)
 	handler(w, req)
 
 	// Check the response status code, it should return a 400 (Bad Request) error

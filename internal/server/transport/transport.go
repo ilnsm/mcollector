@@ -3,6 +3,7 @@ package transport
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/ilnsm/mcollector/internal/storage"
+	"github.com/rs/zerolog/log"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -31,27 +32,7 @@ const htmlTemplate = `
 </html>
 `
 
-func MetrRouter(s storage.Storager) chi.Router {
-
-	r := chi.NewRouter()
-	r.Use(checkMetricType)
-
-	r.Route("/update", func(r chi.Router) {
-		r.Post("/gauge/{gName}/{gValue}", updateGauge(s))
-		r.Post("/counter/{cName}/{cValue}", updateCounter(s))
-	})
-
-	r.Get("/", listAllMetrics(s))
-
-	r.Route("/value", func(r chi.Router) {
-		r.Get("/gauge/{gName}", getGauge(s))
-		r.Get("/counter/{cName}", getCounter(s))
-
-	})
-	return r
-}
-
-func checkMetricType(next http.Handler) http.Handler {
+func CheckMetricType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		p := r.URL.Path
@@ -65,7 +46,7 @@ func checkMetricType(next http.Handler) http.Handler {
 	})
 }
 
-func updateGauge(s storage.Storager) http.HandlerFunc {
+func UpdateGauge(s storage.Storager) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -79,10 +60,12 @@ func updateGauge(s storage.Storager) http.HandlerFunc {
 		if err != nil {
 			http.Error(w, "Not Found", http.StatusBadRequest)
 		}
+
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
-func updateCounter(s storage.Storager) http.HandlerFunc {
+func UpdateCounter(s storage.Storager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		cName, cValue := chi.URLParam(r, "cName"), chi.URLParam(r, "cValue")
@@ -96,10 +79,12 @@ func updateCounter(s storage.Storager) http.HandlerFunc {
 		if err != nil {
 			http.Error(w, "Not Found", http.StatusBadRequest)
 		}
+
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
-func getGauge(s storage.Storager) http.HandlerFunc {
+func GetGauge(s storage.Storager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		k := chi.URLParam(r, "gName")
@@ -108,11 +93,14 @@ func getGauge(s storage.Storager) http.HandlerFunc {
 			http.NotFound(w, r)
 			return
 		}
-		w.Write([]byte(strconv.FormatFloat(v, 'g', -1, 64)))
+		_, err = w.Write([]byte(strconv.FormatFloat(v, 'g', -1, 64)))
+		if err != nil {
+			log.Err(err)
+		}
 
 	}
 }
-func getCounter(s storage.Storager) http.HandlerFunc {
+func GetCounter(s storage.Storager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		k := chi.URLParam(r, "cName")
 		v, err := s.SelectCounter(k)
@@ -120,11 +108,15 @@ func getCounter(s storage.Storager) http.HandlerFunc {
 			http.NotFound(w, r)
 			return
 		}
-		w.Write([]byte(strconv.FormatInt(v, 10)))
+		_, err = w.Write([]byte(strconv.FormatInt(v, 10)))
+		if err != nil {
+			log.Err(err)
+		}
+
 	}
 }
 
-func listAllMetrics(s storage.Storager) http.HandlerFunc {
+func ListAllMetrics(s storage.Storager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		tmpl, err := template.New("index").Parse(htmlTemplate)
