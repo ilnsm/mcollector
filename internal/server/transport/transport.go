@@ -1,13 +1,14 @@
 package transport
 
 import (
-	"github.com/go-chi/chi/v5"
-	"github.com/ilnsm/mcollector/internal/storage"
-	"github.com/rs/zerolog/log"
 	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/ilnsm/mcollector/internal/storage"
+	"github.com/rs/zerolog/log"
 )
 
 const htmlTemplate = `
@@ -34,7 +35,6 @@ const htmlTemplate = `
 
 func CheckMetricType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		p := r.URL.Path
 		if len(p) > 2 {
 			parts := strings.Split(p, "/")
@@ -47,9 +47,7 @@ func CheckMetricType(next http.Handler) http.Handler {
 }
 
 func UpdateGauge(s storage.Storager) http.HandlerFunc {
-
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		gName, gValue := chi.URLParam(r, "gName"), chi.URLParam(r, "gValue")
 
 		v, err := strconv.ParseFloat(gValue, 64)
@@ -67,7 +65,6 @@ func UpdateGauge(s storage.Storager) http.HandlerFunc {
 
 func UpdateCounter(s storage.Storager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		cName, cValue := chi.URLParam(r, "cName"), chi.URLParam(r, "cValue")
 
 		v, err := strconv.ParseInt(cValue, 10, 64)
@@ -86,7 +83,6 @@ func UpdateCounter(s storage.Storager) http.HandlerFunc {
 
 func GetGauge(s storage.Storager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		k := chi.URLParam(r, "gName")
 		v, err := s.SelectGauge(k)
 		if err != nil {
@@ -97,7 +93,6 @@ func GetGauge(s storage.Storager) http.HandlerFunc {
 		if err != nil {
 			log.Err(err)
 		}
-
 	}
 }
 func GetCounter(s storage.Storager) http.HandlerFunc {
@@ -112,13 +107,11 @@ func GetCounter(s storage.Storager) http.HandlerFunc {
 		if err != nil {
 			log.Err(err)
 		}
-
 	}
 }
 
 func ListAllMetrics(s storage.Storager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		tmpl, err := template.New("index").Parse(htmlTemplate)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -137,6 +130,5 @@ func ListAllMetrics(s storage.Storager) http.HandlerFunc {
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-
 	}
 }

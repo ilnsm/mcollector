@@ -3,13 +3,14 @@ package agent
 import (
 	"errors"
 	"fmt"
-	"github.com/ilnsm/mcollector/internal/agent/config"
 	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
 	"strconv"
 	"time"
+
+	"github.com/ilnsm/mcollector/internal/agent/config"
 )
 
 const pollCounter = 1
@@ -17,7 +18,6 @@ const deafaultSchema = "http://"
 const updatePath = "/update"
 
 func Run() {
-
 	cfg, err := config.New()
 	if err != nil {
 		log.Fatal("Could not get config")
@@ -29,19 +29,16 @@ func Run() {
 	client := &http.Client{}
 
 	for {
-
 		metrics, err := GetMetrics(&m, time.Duration(cfg.PollInterval)*time.Second)
 		if err != nil {
 			fmt.Println("could not get metrics")
 		}
 
 		for name, value := range metrics {
-
 			err := makeReq(cfg.Endpoint, "gauge", name, value, client)
 			if err != nil {
 				fmt.Println("could create request: ", err)
 			}
-
 		}
 
 		err = makeReq(cfg.Endpoint, "counter", "PollCount", strconv.Itoa(pollCounter), client)
