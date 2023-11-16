@@ -1,15 +1,15 @@
 package main
 
 import (
+	"os"
+
 	"github.com/ilnsm/mcollector/internal/server"
 	"github.com/ilnsm/mcollector/internal/server/config"
-	"github.com/ilnsm/mcollector/internal/storage/memory"
+	memorystorage "github.com/ilnsm/mcollector/internal/storage/memory"
 	"github.com/rs/zerolog"
-	"os"
 )
 
 func main() {
-
 	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 
 	storage, err := memorystorage.New()

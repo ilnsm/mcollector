@@ -23,4 +23,5 @@ vendor/
 # IDEs directories
 .idea
 .vscode
-runTest.sh
+golangci-lint
+*.sh

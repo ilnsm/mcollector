@@ -29,7 +29,6 @@ func (m *MemStorage) SelectGauge(k string) (float64, error) {
 }
 
 func (m *MemStorage) SelectCounter(k string) (int64, error) {
-
 	if v, ok := m.counter[k]; ok {
 		return v, nil
 	}
