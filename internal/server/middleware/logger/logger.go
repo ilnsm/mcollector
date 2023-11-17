@@ -1,9 +1,10 @@
 package logger
 
 import (
-	"github.com/rs/zerolog"
 	"net/http"
 	"time"
+
+	"github.com/rs/zerolog"
 
 	"github.com/go-chi/chi/v5/middleware"
 )

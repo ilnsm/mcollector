@@ -1,8 +1,9 @@
 package server
 
 import (
-	"github.com/rs/zerolog"
 	"net/http"
+
+	"github.com/rs/zerolog"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/ilnsm/mcollector/internal/server/config"
@@ -13,9 +14,9 @@ import (
 )
 
 type API struct {
-	cfg     config.Config
 	storage storage.Storager
 	log     zerolog.Logger
+	cfg     config.Config
 }
 
 func New(cfg config.Config, s storage.Storager, l zerolog.Logger) *API {
