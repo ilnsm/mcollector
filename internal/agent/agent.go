@@ -15,6 +15,8 @@ import (
 const pollCounter = 1
 const defaultSchema = "http://"
 const updatePath = "/update"
+const gauge = "gauge"
+const counter = "counter"
 
 func Run() {
 	cfg, err := config.New()
@@ -22,7 +24,7 @@ func Run() {
 		log.Fatal().Msg("Could not get config")
 	}
 
-	log.Info().Msgf("Start server\nPush to %s\nCollecting metrigs every %v\n"+
+	log.Info().Msgf("Start server\nPush to %s\nCollecting metrics every %v\n"+
 		"Send metrics every %v\n", cfg.Endpoint, cfg.PollInterval, cfg.ReportInterval)
 	m := runtime.MemStats{}
 	client := &http.Client{}
@@ -34,20 +36,20 @@ func Run() {
 		}
 
 		for name, value := range metrics {
-			err := makeReq(cfg.Endpoint, "gauge", name, value, client)
+			err := makeReq(cfg.Endpoint, gauge, name, value, client)
 			if err != nil {
 				log.Err(err)
 			}
 		}
 
-		err = makeReq(cfg.Endpoint, "counter", "PollCount", strconv.Itoa(pollCounter), client)
+		err = makeReq(cfg.Endpoint, counter, "PollCount", strconv.Itoa(pollCounter), client)
 		if err != nil {
 			log.Err(err)
 		}
 
 		randomFloat := rand.Float64()
 
-		err = makeReq(cfg.Endpoint, "gauge", "RandomValue", strconv.FormatFloat(randomFloat, 'f', -1, 64), client)
+		err = makeReq(cfg.Endpoint, gauge, "RandomValue", strconv.FormatFloat(randomFloat, 'f', -1, 64), client)
 		if err != nil {
 			log.Err(err)
 		}
@@ -56,28 +58,30 @@ func Run() {
 	}
 }
 
-func doRequest(request *http.Request, client *http.Client) error {
-	request.Header.Add("Content-Type", "text/plain")
-	r, err := client.Do(request)
+func makeReq(endpoint, mtype, name, value string, client *http.Client) error {
+	const wrapError = "make request error"
+	endpoint = defaultSchema + endpoint + updatePath
+	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/%s/%s/%s", endpoint, mtype, name, value), nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", wrapError, err)
 	}
-	err = r.Body.Close()
+	request.Header.Add("Content-Type", "text/plain")
+	err = doRequest(request, client)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func makeReq(endpoint, mtype, name, value string, client *http.Client) error {
-	endpoint = defaultSchema + endpoint + updatePath
-	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/%s/%s/%s", endpoint, mtype, name, value), nil)
+func doRequest(request *http.Request, client *http.Client) error {
+	const wrapError = "do request error"
+	r, err := client.Do(request)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", wrapError, err)
 	}
-	err = doRequest(request, client)
+	err = r.Body.Close()
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", wrapError, err)
 	}
 	return nil
 }

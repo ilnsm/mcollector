@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/rs/zerolog/log"
+	"fmt"
 
 	"github.com/caarlos0/env/v9"
 )
@@ -18,8 +18,8 @@ func New() (Config, error) {
 
 	err := env.Parse(&c)
 	if err != nil {
-		log.Err(err)
-		return c, err
+		wrapErr := fmt.Errorf("new agent config error: %w", err)
+		return c, wrapErr
 	}
 
 	return c, nil
