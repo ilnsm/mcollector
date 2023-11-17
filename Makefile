@@ -1,19 +1,22 @@
-.PHONY: all agent server test lint run_lint format_lint
+.PHONY: all agent server test lint run_server run_agent
 all: server agent
 
 export GOLANGCI_LINT_CACHE=${PWD}/golangci-lint/.cache
 export SHELL=/bin/zsh
 
 agent:
-	go build -o cmd/agent/agent ./cmd/agent/*.go
+	@go build -o cmd/agent/agent ./cmd/agent/*.go
 server:
-	go build -o cmd/server/server ./cmd/server/*.go
+	@go build -o cmd/server/server ./cmd/server/*.go
 
-run_server:
-	go run ./cmd/server/*.go
+run_server: server
+	@./cmd/server/server
+
+run_agent: agent
+	@./cmd/agent/agent
 
 test: server agent
-	./runTest.sh
+	@./runTest.sh
 
 .PHONY: lint
 lint: _golangci-lint-rm-unformatted-report
