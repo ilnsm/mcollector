@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/rs/zerolog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -14,12 +15,14 @@ import (
 type API struct {
 	cfg     config.Config
 	storage storage.Storager
+	log     zerolog.Logger
 }
 
-func New(cfg config.Config, s storage.Storager) *API {
+func New(cfg config.Config, s storage.Storager, l zerolog.Logger) *API {
 	return &API{
 		cfg:     cfg,
 		storage: s,
+		log:     l,
 	}
 }
 
@@ -27,7 +30,7 @@ func (a *API) Run() error {
 	log.Info().Msgf("Starting server on %s", a.cfg.Endpoint)
 
 	r := chi.NewRouter()
-	r.Use(logger.RequestLogger)
+	r.Use(logger.RequestLogger(a.log))
 	r.Use(transport.CheckMetricType)
 
 	r.Route("/update", func(r chi.Router) {

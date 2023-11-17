@@ -23,7 +23,7 @@ func main() {
 	}
 
 	setLogLevel(cfg.LogLevel)
-	api := server.New(cfg, storage)
+	api := server.New(cfg, storage, logger)
 
 	if err := api.Run(); err != nil {
 		logger.Fatal().Err(err).Send()
