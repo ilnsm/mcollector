@@ -1,7 +1,7 @@
 package config
 
 import (
-	"fmt"
+	"github.com/rs/zerolog/log"
 
 	"github.com/caarlos0/env/v9"
 )
@@ -18,7 +18,7 @@ func New() (Config, error) {
 
 	err := env.Parse(&c)
 	if err != nil {
-		fmt.Println(err)
+		log.Err(err)
 		return c, err
 	}
 

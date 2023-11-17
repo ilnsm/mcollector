@@ -15,8 +15,8 @@ run_server:
 test: server agent
 	./runTest.sh
 
-.PHONY: golangci-lint-run
-golangci-lint-run: _golangci-lint-rm-unformatted-report
+.PHONY: lint
+lint: _golangci-lint-rm-unformatted-report
 
 .PHONY: _golangci-lint-reports-mkdir
 _golangci-lint-reports-mkdir:
