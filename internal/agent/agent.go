@@ -30,7 +30,7 @@ func Run() {
 	client := &http.Client{}
 
 	for {
-		metrics, err := GetMetrics(&m, time.Duration(cfg.PollInterval)*time.Second)
+		metrics, err := GetMetrics(&m, cfg.PollInterval)
 		if err != nil {
 			log.Err(err)
 		}
@@ -54,12 +54,13 @@ func Run() {
 			log.Err(err)
 		}
 
-		time.Sleep(time.Duration(cfg.ReportInterval) * time.Second)
+		time.Sleep(cfg.ReportInterval)
 	}
 }
 
 func makeReq(endpoint, mtype, name, value string, client *http.Client) error {
 	const wrapError = "make request error"
+	//endpoint = fmt.Sprintf("%v%v%v", defaultSchema, endpoint, updatePath)
 	endpoint = defaultSchema + endpoint + updatePath
 	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/%s/%s/%s", endpoint, mtype, name, value), nil)
 	if err != nil {
