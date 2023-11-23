@@ -7,9 +7,17 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/ilnsm/mcollector/internal/storage"
 	"github.com/rs/zerolog/log"
 )
+
+type Storager interface {
+	InsertGauge(k string, v float64) error
+	InsertCounter(k string, v int64) error
+	SelectGauge(k string) (float64, error)
+	SelectCounter(k string) (int64, error)
+	GetCounters() map[string]int64
+	GetGauges() map[string]float64
+}
 
 const htmlTemplate = `
 <!DOCTYPE html>
@@ -46,7 +54,7 @@ func CheckMetricType(next http.Handler) http.Handler {
 	})
 }
 
-func UpdateGauge(s storage.Storager) http.HandlerFunc {
+func UpdateGauge(s Storager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		gName, gValue := chi.URLParam(r, "gName"), chi.URLParam(r, "gValue")
 
@@ -63,7 +71,7 @@ func UpdateGauge(s storage.Storager) http.HandlerFunc {
 	}
 }
 
-func UpdateCounter(s storage.Storager) http.HandlerFunc {
+func UpdateCounter(s Storager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cName, cValue := chi.URLParam(r, "cName"), chi.URLParam(r, "cValue")
 
@@ -81,7 +89,7 @@ func UpdateCounter(s storage.Storager) http.HandlerFunc {
 	}
 }
 
-func GetGauge(s storage.Storager) http.HandlerFunc {
+func GetGauge(s Storager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		k := chi.URLParam(r, "gName")
 		v, err := s.SelectGauge(k)
@@ -95,7 +103,7 @@ func GetGauge(s storage.Storager) http.HandlerFunc {
 		}
 	}
 }
-func GetCounter(s storage.Storager) http.HandlerFunc {
+func GetCounter(s Storager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		k := chi.URLParam(r, "cName")
 		v, err := s.SelectCounter(k)
@@ -110,7 +118,7 @@ func GetCounter(s storage.Storager) http.HandlerFunc {
 	}
 }
 
-func ListAllMetrics(s storage.Storager) http.HandlerFunc {
+func ListAllMetrics(s Storager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tmpl, err := template.New("index").Parse(htmlTemplate)
 		if err != nil {
