@@ -3,7 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/ilnsm/mcollector/internal/server"
+	"github.com/ilnsm/mcollector/internal/server/transport"
+
 	"github.com/ilnsm/mcollector/internal/server/config"
 	memorystorage "github.com/ilnsm/mcollector/internal/storage/memory"
 	"github.com/rs/zerolog"
@@ -23,7 +24,7 @@ func main() {
 	}
 
 	setLogLevel(cfg.LogLevel)
-	api := server.New(cfg, storage, logger)
+	api := transport.New(cfg, storage, logger)
 
 	if err := api.Run(); err != nil {
 		logger.Fatal().Err(err).Send()

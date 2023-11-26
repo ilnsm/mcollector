@@ -16,7 +16,7 @@ run_agent: agent
 	@./cmd/agent/agent
 
 test: server agent
-	@./runTest.sh
+	@./runTest.sh > test.result
 
 .PHONY: lint
 lint: _golangci-lint-rm-unformatted-report

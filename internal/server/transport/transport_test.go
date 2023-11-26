@@ -4,9 +4,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/ilnsm/mcollector/internal/server/config"
+	"github.com/rs/zerolog"
 )
 
-type MockStorage struct{}
+type MockStorage struct {
+	// Implement necessary fields for mock storage
+}
 
 func (s *MockStorage) InsertGauge(name string, value float64) error {
 	return nil
@@ -29,37 +34,83 @@ func (s *MockStorage) GetGauges() map[string]float64 {
 	return nil
 }
 
-func TestUpdateGaugeHandlerInvalidURL(t *testing.T) {
-	// Create a mock storage
-	storage := &MockStorage{}
+func TestUpdateTheMetric(t *testing.T) {
+	// Create a mock API instance with a mock storage
+	mockStorage := &MockStorage{}
+	mockAPI := &API{Storage: mockStorage, Log: zerolog.Logger{}, Cfg: config.Config{}}
 
-	// Create a request with an invalid URL
-	req := httptest.NewRequest("GET", "/update/metric", nil)
-	w := httptest.NewRecorder()
+	tests := []struct {
+		name       string
+		url        string
+		method     string
+		body       string
+		statusCode int
+	}{
+		// Test Case 1: Successful update of a gauge
+		//{
+		//	name:       "UpdateGaugeSuccess",
+		//	url:        "/update/gauge/myGauge/42.0",
+		//	method:     "POST",
+		//	body:       "",
+		//	statusCode: http.StatusOK,
+		// },
+		//
+		//// Test Case 2: Successful update of a counter
+		//{
+		//	name:       "UpdateCounterSuccess",
+		//	url:        "/update/counter/myCounter/10",
+		//	method:     "POST",
+		//	body:       "",
+		//	statusCode: http.StatusOK,
+		// },
 
-	// Call the handler
-	handler := UpdateGauge(storage)
-	handler(w, req)
+		// Test Case 3: Bad request (invalid value for gauge)
+		{
+			name:       "BadRequestInvalidGaugeValue",
+			url:        "/update/gauge/myGauge/invalidValue",
+			method:     "POST",
+			body:       "",
+			statusCode: http.StatusBadRequest,
+		},
 
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("Expected status code %d, but got %d", http.StatusBadRequest, w.Code)
+		// Test Case 4: Bad request (invalid value for counter)
+		{
+			name:       "BadRequestInvalidCounterValue",
+			url:        "/update/counter/myCounter/invalidValue",
+			method:     "POST",
+			body:       "",
+			statusCode: http.StatusBadRequest,
+		},
+
+		// Test Case 5: Not found (invalid metric type)
+		{
+			name:       "NotFoundInvalidMetricType",
+			url:        "/update/unknownType/myMetric/42.0",
+			method:     "POST",
+			body:       "",
+			statusCode: http.StatusBadRequest,
+		},
 	}
-}
 
-func TestUpdateCounterHandlerInvalidValue(t *testing.T) {
-	// Create a mock storage
-	storage := &MockStorage{}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a request with the specified URL, method, and body
+			req, err := http.NewRequest(tt.method, tt.url, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	// Create a request with an invalid counter value
-	req := httptest.NewRequest("GET", "/update/counter/metricName/invalidValue", nil)
-	w := httptest.NewRecorder()
+			// Create a mock response recorder
+			w := httptest.NewRecorder()
 
-	// Call the handler
-	handler := UpdateCounter(storage)
-	handler(w, req)
+			// Call the handler function
+			handler := UpdateTheMetric(mockAPI)
+			handler(w, req)
 
-	// Check the response status code, it should return a 400 (Bad Request) error
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("Expected status code %d, but got %d", http.StatusBadRequest, w.Code)
+			// Check the response status code
+			if w.Code != tt.statusCode {
+				t.Errorf("Expected status code %d, got %d", tt.statusCode, w.Code)
+			}
+		})
 	}
 }
