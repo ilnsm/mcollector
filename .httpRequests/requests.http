@@ -1,0 +1,48 @@
+
+###
+POST http://{{default_url}}/update/gauge/gaugename/2.87
+Content-Type: text/plain
+
+###
+POST http://{{default_url}}/update/counter/countername/23
+Content-Type: text/plain
+
+###
+GET http://{{default_url}}/value/gauge/gaugename
+Content-Type: text/plain
+
+###
+GET http://{{default_url}}/value/counter/countername
+Content-Type: text/plain
+
+###
+POST http://{{default_url}}/update
+Content-Type: application/json
+
+{"id": "counterNameJSON",
+  "type": "counter",
+  "delta": 13}
+
+###
+POST http://{{default_url}}/update
+Content-Type: application/json
+
+{"id": "gaugeNameJSON",
+  "type": "gauge",
+  "value": 38.988}
+
+###
+POST http://{{default_url}}/value
+Content-Type: application/json
+
+{"id": "counterNameJSON",
+  "type": "counter"}
+
+###
+POST http://{{default_url}}/valuedfdf
+Content-Type: application/json
+
+{"id": "gaugeNameJSON",
+  "type": "gauge"}
+
+###

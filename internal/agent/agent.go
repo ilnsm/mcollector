@@ -60,8 +60,7 @@ func Run() {
 
 func makeReq(endpoint, mtype, name, value string, client *http.Client) error {
 	const wrapError = "make request error"
-	//endpoint = fmt.Sprintf("%v%v%v", defaultSchema, endpoint, updatePath)
-	endpoint = defaultSchema + endpoint + updatePath
+	endpoint = fmt.Sprintf("%v%v%v", defaultSchema, endpoint, updatePath)
 	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/%s/%s/%s", endpoint, mtype, name, value), nil)
 	if err != nil {
 		return fmt.Errorf("%s: %w", wrapError, err)

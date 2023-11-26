@@ -1,23 +1,15 @@
 package transport
 
 import (
+	"encoding/json"
 	"html/template"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/ilnsm/mcollector/internal/models"
 	"github.com/rs/zerolog/log"
 )
-
-type Storager interface {
-	InsertGauge(k string, v float64) error
-	InsertCounter(k string, v int64) error
-	SelectGauge(k string) (float64, error)
-	SelectCounter(k string) (int64, error)
-	GetCounters() map[string]int64
-	GetGauges() map[string]float64
-}
 
 const htmlTemplate = `
 <!DOCTYPE html>
@@ -41,84 +33,79 @@ const htmlTemplate = `
 </html>
 `
 
-func CheckMetricType(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		p := r.URL.Path
-		if len(p) > 2 {
-			parts := strings.Split(p, "/")
-			if parts[2] != "gauge" && parts[2] != "counter" {
-				w.WriteHeader(http.StatusBadRequest)
+func UpdateTheMetric(a *API) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		mType, mName, mValue := chi.URLParam(r, "mType"), chi.URLParam(r, "mName"), chi.URLParam(r, "mValue")
+		switch mType {
+		case "gauge":
+			{
+				v, err := strconv.ParseFloat(mValue, 64)
+				if err != nil {
+					http.Error(w, "Bad request", http.StatusBadRequest)
+				}
+				err = a.Storage.InsertGauge(mName, v)
+				if err != nil {
+					http.Error(w, "Not Found", http.StatusBadRequest)
+				}
+
+				w.WriteHeader(http.StatusOK)
 			}
-		}
-		next.ServeHTTP(w, r)
-	})
-}
 
-func UpdateGauge(s Storager) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		gName, gValue := chi.URLParam(r, "gName"), chi.URLParam(r, "gValue")
+		case "counter":
+			{
+				v, err := strconv.ParseInt(mValue, 10, 64)
+				if err != nil {
+					http.Error(w, "Bad request", http.StatusBadRequest)
+				}
+				err = a.Storage.InsertCounter(mName, v)
 
-		v, err := strconv.ParseFloat(gValue, 64)
-		if err != nil {
-			http.Error(w, "Bad request", http.StatusBadRequest)
-		}
-		err = s.InsertGauge(gName, v)
-		if err != nil {
-			http.Error(w, "Not Found", http.StatusBadRequest)
-		}
+				if err != nil {
+					http.Error(w, "Not Found", http.StatusBadRequest)
+				}
 
-		w.WriteHeader(http.StatusOK)
-	}
-}
-
-func UpdateCounter(s Storager) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		cName, cValue := chi.URLParam(r, "cName"), chi.URLParam(r, "cValue")
-
-		v, err := strconv.ParseInt(cValue, 10, 64)
-		if err != nil {
-			http.Error(w, "Bad request", http.StatusBadRequest)
-		}
-		err = s.InsertCounter(cName, v)
-
-		if err != nil {
-			http.Error(w, "Not Found", http.StatusBadRequest)
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}
-}
-
-func GetGauge(s Storager) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		k := chi.URLParam(r, "gName")
-		v, err := s.SelectGauge(k)
-		if err != nil {
-			http.NotFound(w, r)
-			return
-		}
-		_, err = w.Write([]byte(strconv.FormatFloat(v, 'g', -1, 64)))
-		if err != nil {
-			log.Err(err)
-		}
-	}
-}
-func GetCounter(s Storager) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		k := chi.URLParam(r, "cName")
-		v, err := s.SelectCounter(k)
-		if err != nil {
-			http.NotFound(w, r)
-			return
-		}
-		_, err = w.Write([]byte(strconv.FormatInt(v, 10)))
-		if err != nil {
-			log.Err(err)
+				w.WriteHeader(http.StatusOK)
+			}
+		default:
+			w.WriteHeader(http.StatusBadRequest)
 		}
 	}
 }
 
-func ListAllMetrics(s Storager) http.HandlerFunc {
+func GetTheMetric(a *API) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		mType, mName := chi.URLParam(r, "mType"), chi.URLParam(r, "mName")
+
+		switch mType {
+		case "gauge":
+			v, err := a.Storage.SelectGauge(mName)
+			if err != nil {
+				http.NotFound(w, r)
+				return
+			}
+			_, err = w.Write([]byte(strconv.FormatFloat(v, 'g', -1, 64)))
+			if err != nil {
+				log.Err(err)
+			}
+
+		case "counter":
+			{
+				v, err := a.Storage.SelectCounter(mName)
+				if err != nil {
+					http.NotFound(w, r)
+					return
+				}
+				_, err = w.Write([]byte(strconv.FormatInt(v, 10)))
+				if err != nil {
+					log.Err(err)
+				}
+			}
+		default:
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	}
+}
+
+func ListAllMetrics(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tmpl, err := template.New("index").Parse(htmlTemplate)
 		if err != nil {
@@ -126,7 +113,7 @@ func ListAllMetrics(s Storager) http.HandlerFunc {
 			return
 		}
 
-		c, g := s.GetCounters(), s.GetGauges()
+		c, g := a.Storage.GetCounters(), a.Storage.GetGauges()
 		var data = make(map[string]string)
 		for i, v := range c {
 			data[i] = strconv.Itoa(int(v))
@@ -137,6 +124,110 @@ func ListAllMetrics(s Storager) http.HandlerFunc {
 		err = tmpl.Execute(w, data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+}
+
+func UpdateTheMetricWithJSON(a *API) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var m models.Metrics
+		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		switch m.MType {
+		case "gauge":
+			err := a.Storage.InsertGauge(m.ID, *m.Value)
+			if err != nil {
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				return
+			}
+
+			*m.Value, err = a.Storage.SelectGauge(m.ID)
+			if err != nil {
+				a.Log.Error().Msg("error get gauge's value ")
+			}
+			w.Header().Set("Content-Type", "application/json")
+			enc := json.NewEncoder(w)
+			if err = enc.Encode(m); err != nil {
+				a.Log.Error().Str("func", "UpdateTheMetricWithJSON").Msg("connote encode answer")
+				return
+			}
+
+			w.WriteHeader(http.StatusOK)
+			a.Log.Debug().Msg("sending HTTP 200 response")
+
+		case "counter":
+			err := a.Storage.InsertCounter(m.ID, *m.Delta)
+			if err != nil {
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				return
+			}
+
+			*m.Delta, err = a.Storage.SelectCounter(m.ID)
+			if err != nil {
+				a.Log.Error().Msg("error get counter's value ")
+			}
+			w.Header().Set("Content-Type", "application/json")
+			enc := json.NewEncoder(w)
+			if err = enc.Encode(m); err != nil {
+				a.Log.Error().Str("func", "UpdateTheMetricWithJSON").Msg("connote encode answer")
+				return
+			}
+
+			w.WriteHeader(http.StatusOK)
+			a.Log.Debug().Msg("sending HTTP 200 response")
+		default:
+			http.Error(w, "Bad request", http.StatusBadRequest)
+		}
+	}
+}
+
+func GetTheMetricWithJSON(a *API) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var m models.Metrics
+		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		switch m.MType {
+		case "gauge":
+			value, err := a.Storage.SelectGauge(m.ID)
+			if err != nil {
+				a.Log.Error().Msg("error getting gauge's value")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			m.Value = &value
+			w.Header().Set("Content-Type", "application/json")
+			enc := json.NewEncoder(w)
+			if err := enc.Encode(m); err != nil {
+				a.Log.Error().Str("func", "UpdateTheMetricWithJSON").Msg("connote encode answer")
+				return
+			}
+
+			w.WriteHeader(http.StatusOK)
+			a.Log.Debug().Msg("sending HTTP 200 response")
+
+		case "counter":
+			delta, err := a.Storage.SelectCounter(m.ID)
+			if err != nil {
+				a.Log.Error().Msg("error getting counter's value")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			m.Delta = &delta
+			w.Header().Set("Content-Type", "application/json")
+			enc := json.NewEncoder(w)
+			if err := enc.Encode(m); err != nil {
+				a.Log.Error().Str("func", "UpdateTheMetricWithJSON").Msg("connote encode answer")
+				return
+			}
+
+			w.WriteHeader(http.StatusOK)
+			a.Log.Debug().Msg("sending HTTP 200 response")
+		default:
+			http.Error(w, "Bad request", http.StatusBadRequest)
 		}
 	}
 }
