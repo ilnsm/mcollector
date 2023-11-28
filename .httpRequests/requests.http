@@ -46,3 +46,5 @@ Content-Type: application/json
   "type": "gauge"}
 
 ###
+
+GET http://{{default_url}}/

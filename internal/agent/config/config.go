@@ -19,7 +19,10 @@ type tmpDurations struct {
 }
 
 func New() (Config, error) {
-	var tmp tmpDurations
+	tmp := tmpDurations{
+		ReportInterval: -1,
+		PollInterval:   -1,
+	}
 	var c Config
 	ParseFlag(&c)
 
@@ -28,13 +31,18 @@ func New() (Config, error) {
 		wrapErr := fmt.Errorf("new agent config error: %w", err)
 		return c, wrapErr
 	}
+
 	err = env.Parse(&c)
 	if err != nil {
 		wrapErr := fmt.Errorf("new agent config error: %w", err)
 		return c, wrapErr
 	}
 
-	c.ReportInterval = time.Duration(tmp.ReportInterval) * time.Second
-	c.PollInterval = time.Duration(tmp.PollInterval) * time.Second
+	if tmp.PollInterval > 0 {
+		c.ReportInterval = time.Duration(tmp.ReportInterval) * time.Second
+	}
+	if tmp.ReportInterval > 0 {
+		c.PollInterval = time.Duration(tmp.PollInterval) * time.Second
+	}
 	return c, nil
 }
