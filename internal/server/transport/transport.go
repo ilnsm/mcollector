@@ -214,7 +214,8 @@ func GetTheMetricWithJSON(a *API) http.HandlerFunc {
 			delta, err := a.Storage.SelectCounter(m.ID)
 			if err != nil {
 				a.Log.Error().Msg("error getting counter's value")
-				w.WriteHeader(http.StatusInternalServerError)
+				w.WriteHeader(http.StatusNotFound)
+				w.Header().Set("Content-Type", "application/json")
 				return
 			}
 			m.Delta = &delta
