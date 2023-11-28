@@ -12,7 +12,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const pollCounter = 1
 const defaultSchema = "http://"
 const updatePath = "/update"
 const gauge = "gauge"
@@ -26,35 +25,45 @@ func Run() {
 
 	log.Info().Msgf("Start server\nPush to %s\nCollecting metrics every %v\n"+
 		"Send metrics every %v\n", cfg.Endpoint, cfg.PollInterval, cfg.ReportInterval)
+
 	m := runtime.MemStats{}
+	metrics := make(map[string]string)
 	client := &http.Client{}
 
-	for {
-		metrics, err := GetMetrics(&m, cfg.PollInterval)
-		if err != nil {
-			log.Err(err)
-		}
+	mTicker := time.NewTicker(cfg.PollInterval)
+	reqTicker := time.NewTicker(cfg.ReportInterval)
 
-		for name, value := range metrics {
-			err := makeReq(cfg.Endpoint, gauge, name, value, client)
+	var pollCounter int
+	for {
+		select {
+		case <-mTicker.C:
+			err := GetMetrics(&m, metrics)
 			if err != nil {
 				log.Err(err)
 			}
+			pollCounter++
+		case <-reqTicker.C:
+			for name, value := range metrics {
+				err := makeReq(cfg.Endpoint, gauge, name, value, client)
+				if err != nil {
+					log.Err(err)
+				}
+			}
+
+			err = makeReq(cfg.Endpoint, counter, "PollCount", strconv.Itoa(pollCounter), client)
+			if err != nil {
+				log.Err(err)
+			}
+
+			randomFloat := rand.Float64()
+
+			err = makeReq(cfg.Endpoint, gauge, "RandomValue", strconv.FormatFloat(randomFloat, 'f', -1, 64), client)
+			if err != nil {
+				log.Err(err)
+			}
+
+			pollCounter = 0
 		}
-
-		err = makeReq(cfg.Endpoint, counter, "PollCount", strconv.Itoa(pollCounter), client)
-		if err != nil {
-			log.Err(err)
-		}
-
-		randomFloat := rand.Float64()
-
-		err = makeReq(cfg.Endpoint, gauge, "RandomValue", strconv.FormatFloat(randomFloat, 'f', -1, 64), client)
-		if err != nil {
-			log.Err(err)
-		}
-
-		time.Sleep(cfg.ReportInterval)
 	}
 }
 

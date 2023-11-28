@@ -3,12 +3,10 @@ package agent
 import (
 	"runtime"
 	"strconv"
-	"time"
 )
 
-func GetMetrics(ms *runtime.MemStats, d time.Duration) (map[string]string, error) {
+func GetMetrics(ms *runtime.MemStats, mtr map[string]string) error {
 	runtime.ReadMemStats(ms)
-	mtr := make(map[string]string)
 	mtr["Alloc"] = strconv.FormatUint(ms.Alloc, 10)
 	mtr["BuckHashSys"] = strconv.FormatUint(ms.BuckHashSys, 10)
 	mtr["Frees"] = strconv.FormatUint(ms.Frees, 10)
@@ -36,6 +34,5 @@ func GetMetrics(ms *runtime.MemStats, d time.Duration) (map[string]string, error
 	mtr["StackSys"] = strconv.FormatUint(ms.StackSys, 10)
 	mtr["Sys"] = strconv.FormatUint(ms.Sys, 10)
 	mtr["TotalAlloc"] = strconv.FormatUint(ms.TotalAlloc, 10)
-	time.Sleep(d)
-	return mtr, nil
+	return nil
 }
