@@ -1,12 +1,16 @@
 package agent
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
 	"runtime"
 	"strconv"
 	"time"
+
+	"github.com/ilnsm/mcollector/internal/models"
 
 	"github.com/ilnsm/mcollector/internal/agent/config"
 	"github.com/rs/zerolog/log"
@@ -29,11 +33,12 @@ func Run() {
 	m := runtime.MemStats{}
 	metrics := make(map[string]string)
 	client := &http.Client{}
+	var mModel models.Metrics
 
 	mTicker := time.NewTicker(cfg.PollInterval)
 	reqTicker := time.NewTicker(cfg.ReportInterval)
 
-	var pollCounter int
+	var pollCounter int64
 	for {
 		select {
 		case <-mTicker.C:
@@ -44,46 +49,50 @@ func Run() {
 			pollCounter++
 		case <-reqTicker.C:
 			for name, value := range metrics {
-				err := makeReq(cfg.Endpoint, gauge, name, value, client)
+				mModel.ID = name
+				mModel.MType = gauge
+				v, err := strconv.ParseFloat(value, 64)
 				if err != nil {
-					log.Err(err)
+					log.Error().Msg("error convert string to float")
+				}
+				mModel.Value = &v
+
+				err = doRequestWithJSON(cfg.Endpoint, mModel, client)
+				if err != nil {
+					log.Error().Err(err).Msg("cannot create request")
 				}
 			}
 
-			err = makeReq(cfg.Endpoint, counter, "PollCount", strconv.Itoa(pollCounter), client)
+			mModel.ID = "PollCount"
+			mModel.MType = counter
+			mModel.Delta = &pollCounter
+			err = doRequestWithJSON(cfg.Endpoint, mModel, client)
 			if err != nil {
-				log.Err(err)
+				log.Error().Err(err).Msg("cannot create request")
 			}
 
 			randomFloat := rand.Float64()
-
-			err = makeReq(cfg.Endpoint, gauge, "RandomValue", strconv.FormatFloat(randomFloat, 'f', -1, 64), client)
+			mModel.ID = "RandomValue"
+			mModel.MType = gauge
+			mModel.Value = &randomFloat
+			err = doRequestWithJSON(cfg.Endpoint, mModel, client)
 			if err != nil {
-				log.Err(err)
+				log.Error().Err(err).Msg("cannot create request")
 			}
-
 			pollCounter = 0
 		}
 	}
 }
 
-func makeReq(endpoint, mtype, name, value string, client *http.Client) error {
-	const wrapError = "make request error"
-	endpoint = fmt.Sprintf("%v%v%v", defaultSchema, endpoint, updatePath)
-	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/%s/%s/%s", endpoint, mtype, name, value), nil)
-	if err != nil {
-		return fmt.Errorf("%s: %w", wrapError, err)
-	}
-	request.Header.Add("Content-Type", "text/plain")
-	err = doRequest(request, client)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func doRequest(request *http.Request, client *http.Client) error {
+func doRequestWithJSON(endpoint string, m models.Metrics, client *http.Client) error {
 	const wrapError = "do request error"
+	endpoint = fmt.Sprintf("%v%v%v", defaultSchema, endpoint, updatePath)
+	jsonData, err := json.Marshal(m)
+	if err != nil {
+		return fmt.Errorf("error marshaling JSON: %w", err)
+	}
+	request, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewBuffer(jsonData))
+	request.Header.Set("Content-Type", "application/json")
 	r, err := client.Do(request)
 	if err != nil {
 		return fmt.Errorf("%s: %w", wrapError, err)
