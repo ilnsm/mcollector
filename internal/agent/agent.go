@@ -92,6 +92,9 @@ func doRequestWithJSON(endpoint string, m models.Metrics, client *http.Client) e
 		return fmt.Errorf("error marshaling JSON: %w", err)
 	}
 	request, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("%s: %w", wrapError, err)
+	}
 	request.Header.Set("Content-Type", "application/json")
 	r, err := client.Do(request)
 	if err != nil {

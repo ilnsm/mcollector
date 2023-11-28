@@ -195,7 +195,8 @@ func GetTheMetricWithJSON(a *API) http.HandlerFunc {
 			value, err := a.Storage.SelectGauge(m.ID)
 			if err != nil {
 				a.Log.Error().Msg("error getting gauge's value")
-				w.WriteHeader(http.StatusInternalServerError)
+				w.WriteHeader(http.StatusNotFound)
+				w.Header().Set("Content-Type", "application/json")
 				return
 			}
 			m.Value = &value
