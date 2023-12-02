@@ -6,6 +6,7 @@ import (
 	"github.com/rs/zerolog"
 	"io"
 	"net/http"
+	"strings"
 )
 
 const compressFunc = "gzip"
@@ -58,10 +59,8 @@ func DecompressRequest(log zerolog.Logger) func(next http.Handler) http.Handler 
 				http.Error(w, "failed to decompress data", http.StatusInternalServerError)
 				return
 			}
-			_, err = w.Write(decompressed)
-			if err != nil {
-				log.Error().Err(err).Msg("failed to write decompressed body")
-			}
+
+			r.Body = io.NopCloser(strings.NewReader(string(decompressed)))
 
 			next.ServeHTTP(w, r)
 		})
@@ -72,14 +71,6 @@ func CompressResponse(log zerolog.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			const wrapError = "middleware compressor"
-
-			//If content type does not match with allowedContentTypes stop processing and return to next handler
-			if !matchContentTypes(r.Header.Values("Content-Type"), allowedContentTypes) {
-				log.Debug().Msgf("did not match Content-Type in CompressResponse")
-				next.ServeHTTP(w, r)
-				return
-			}
-			log.Debug().Msgf("matched Content-Type in CompressResponse")
 
 			//If client does not support compressed body stop processing and return to next handler
 			if !matchCompressFunc(r.Header.Values("Accept-Encoding"), compressFunc) {

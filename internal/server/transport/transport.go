@@ -121,6 +121,7 @@ func ListAllMetrics(a *API) http.HandlerFunc {
 		for i, v := range g {
 			data[i] = strconv.FormatFloat(v, 'f', -1, 64)
 		}
+		w.Header().Set("Content-Type", "text/html")
 		err = tmpl.Execute(w, data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
