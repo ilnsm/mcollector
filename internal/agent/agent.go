@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -91,11 +92,20 @@ func doRequestWithJSON(endpoint string, m models.Metrics, client *http.Client) e
 	if err != nil {
 		return fmt.Errorf("error marshaling JSON: %w", err)
 	}
-	request, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewBuffer(jsonData))
+	var buf bytes.Buffer
+	g := gzip.NewWriter(&buf)
+	if _, err = g.Write(jsonData); err != nil {
+		return fmt.Errorf("%s: %w", wrapError, err)
+	}
+	if err = g.Close(); err != nil {
+		return fmt.Errorf("%s: %w", wrapError, err)
+	}
+	request, err := http.NewRequest(http.MethodPost, endpoint, &buf)
 	if err != nil {
 		return fmt.Errorf("%s: %w", wrapError, err)
 	}
 	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Content-Encoding", "gzip")
 	r, err := client.Do(request)
 	if err != nil {
 		return fmt.Errorf("%s: %w", wrapError, err)
