@@ -48,3 +48,49 @@ Content-Type: application/json
 ###
 
 GET http://{{default_url}}/
+
+
+### With encoding
+###
+POST http://{{default_url}}/update
+Content-Type: application/json
+Accept-Encoding: gzip
+
+{"id": "counterNameJSON",
+  "type": "counter",
+  "delta": 13}
+
+###
+POST http://{{default_url}}/update
+Content-Type: application/json
+Accept-Encoding: gzip
+
+{"id": "gaugeNameJSON",
+  "type": "gauge",
+  "value": 38.988}
+
+###
+POST http://{{default_url}}/value
+Content-Type: application/json
+Accept-Encoding: gzip
+
+{"id": "counterNameJSON",
+  "type": "counter"}
+
+
+###
+
+GET http://{{default_url}}/
+Accept-Encoding: gzip
+Content-Type: text/html
+
+
+###
+POST http://{{default_url}}/value
+Content-Type: application/json
+Accept-Encoding: gzip
+Content-Encoding: gzip
+
+{"id": "gaugeNameJSON",
+  "type": "gauge",
+  "value": 38.988}
