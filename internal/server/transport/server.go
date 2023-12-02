@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"github.com/ilnsm/mcollector/internal/server/middleware/compress"
 	"net/http"
 
 	"github.com/rs/zerolog"
@@ -11,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type Storager interface {
+type Storage interface {
 	InsertGauge(k string, v float64) error
 	InsertCounter(k string, v int64) error
 	SelectGauge(k string) (float64, error)
@@ -21,12 +22,12 @@ type Storager interface {
 }
 
 type API struct {
-	Storage Storager
+	Storage Storage
 	Log     zerolog.Logger
 	Cfg     config.Config
 }
 
-func New(cfg config.Config, s Storager, l zerolog.Logger) *API {
+func New(cfg config.Config, s Storage, l zerolog.Logger) *API {
 	return &API{
 		Cfg:     cfg,
 		Storage: s,
@@ -45,6 +46,8 @@ func (a *API) Run() error {
 func (a *API) registerAPI() chi.Router {
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger(a.Log))
+	r.Use(compress.CompressResponse(a.Log))
+	r.Use(compress.DecompressRequest(a.Log))
 
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", UpdateTheMetricWithJSON(a))
