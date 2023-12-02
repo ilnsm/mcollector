@@ -28,13 +28,13 @@ func New() (Config, error) {
 
 	err := env.Parse(&tmp)
 	if err != nil {
-		wrapErr := fmt.Errorf("new agent config error: %w", err)
+		wrapErr := fmt.Errorf("parse tmp error: %w", err)
 		return c, wrapErr
 	}
 
 	err = env.Parse(&c)
 	if err != nil {
-		wrapErr := fmt.Errorf("new agent config error: %w", err)
+		wrapErr := fmt.Errorf("parse config error: %w", err)
 		return c, wrapErr
 	}
 

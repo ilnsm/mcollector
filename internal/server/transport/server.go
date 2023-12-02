@@ -1,8 +1,9 @@
 package transport
 
 import (
-	"github.com/ilnsm/mcollector/internal/server/middleware/compress"
 	"net/http"
+
+	"github.com/ilnsm/mcollector/internal/server/middleware/compress"
 
 	"github.com/rs/zerolog"
 
