@@ -3,10 +3,12 @@ package compress
 import (
 	"bytes"
 	"compress/gzip"
-	"github.com/rs/zerolog"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/rs/zerolog"
 )
 
 const compressFunc = "gzip"
@@ -34,7 +36,7 @@ func DecompressRequest(log zerolog.Logger) func(next http.Handler) http.Handler 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			const wrapErr = "middleware compressor"
 
-			//If content type does not match with allowedContentTypes stop processing and return to next handler
+			// If content type does not match with allowedContentTypes stop processing and return to next handler
 			if !matchContentTypes(r.Header.Values("Content-Type"), allowedContentTypes) {
 				log.Debug().Msgf("did not match Content-Type in DecompressRequest")
 				next.ServeHTTP(w, r)
@@ -42,7 +44,7 @@ func DecompressRequest(log zerolog.Logger) func(next http.Handler) http.Handler 
 			}
 			log.Debug().Msgf("matched Content-Type in DecompressRequest")
 
-			//If compress function does not match with compressFunc stop processing and return to next handler
+			// If compress function does not match with compressFunc stop processing and return to next handler
 			if !matchCompressFunc(r.Header.Values("Content-Encoding"), compressFunc) {
 				log.Debug().Msg("did not match Content-Encoding")
 				next.ServeHTTP(w, r)
@@ -72,7 +74,7 @@ func CompressResponse(log zerolog.Logger) func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			const wrapError = "middleware compressor"
 
-			//If client does not support compressed body stop processing and return to next handler
+			// If client does not support compressed body stop processing and return to next handler
 			if !matchCompressFunc(r.Header.Values("Accept-Encoding"), compressFunc) {
 				log.Debug().Msg("did not match  Accept-Encoding")
 				next.ServeHTTP(w, r)
@@ -120,7 +122,7 @@ func matchCompressFunc(headers []string, compressFunc string) bool {
 func decompressGzip(data []byte, log zerolog.Logger) ([]byte, error) {
 	r, err := gzip.NewReader(bytes.NewReader(data))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decompressGzip error: %w", err)
 	}
 	func() {
 		err := r.Close()
@@ -132,8 +134,7 @@ func decompressGzip(data []byte, log zerolog.Logger) ([]byte, error) {
 	var b bytes.Buffer
 	_, err = b.ReadFrom(r)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to decompress read decompressed data")
-		return nil, err
+		return nil, fmt.Errorf("decompressGzip error: %w", err)
 	}
 	return b.Bytes(), nil
 }

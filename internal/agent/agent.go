@@ -21,6 +21,7 @@ const defaultSchema = "http://"
 const updatePath = "/update"
 const gauge = "gauge"
 const counter = "counter"
+const cannotCreateRequest = "cannot create request"
 
 func Run() {
 	cfg, err := config.New()
@@ -60,7 +61,7 @@ func Run() {
 
 				err = doRequestWithJSON(cfg.Endpoint, mModel, client)
 				if err != nil {
-					log.Error().Err(err).Msg("cannot create request")
+					log.Error().Err(err).Msg(cannotCreateRequest)
 				}
 			}
 
@@ -69,7 +70,7 @@ func Run() {
 			mModel.Delta = &pollCounter
 			err = doRequestWithJSON(cfg.Endpoint, mModel, client)
 			if err != nil {
-				log.Error().Err(err).Msg("cannot create request")
+				log.Error().Err(err).Msg(cannotCreateRequest)
 			}
 
 			randomFloat := rand.Float64()
@@ -78,7 +79,7 @@ func Run() {
 			mModel.Value = &randomFloat
 			err = doRequestWithJSON(cfg.Endpoint, mModel, client)
 			if err != nil {
-				log.Error().Err(err).Msg("cannot create request")
+				log.Error().Err(err).Msg(cannotCreateRequest)
 			}
 			pollCounter = 0
 		}
