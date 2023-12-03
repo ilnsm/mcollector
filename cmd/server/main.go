@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/ilnsm/mcollector/internal/server/transport"
-	"github.com/ilnsm/mcollector/internal/storage/file"
 	"os"
 	"time"
+
+	"github.com/ilnsm/mcollector/internal/server/transport"
+	"github.com/ilnsm/mcollector/internal/storage/file"
 
 	"github.com/ilnsm/mcollector/internal/server/config"
 	memorystorage "github.com/ilnsm/mcollector/internal/storage/memory"
@@ -43,14 +44,12 @@ func main() {
 		defer t.Stop()
 
 		go func() {
-			for {
-				select {
-				case <-t.C:
-					logger.Debug().Msg("attempt to flush metrics by ticker")
-					err := file.FlushMetrics(storage, cfg.FileStoragePath)
-					if err != nil {
-						logger.Error().Err(err).Msg("cannot flush metrics in time")
-					}
+			select {
+			case <-t.C:
+				logger.Debug().Msg("attempt to flush metrics by ticker")
+				err := file.FlushMetrics(storage, cfg.FileStoragePath)
+				if err != nil {
+					logger.Error().Err(err).Msg("cannot flush metrics in time")
 				}
 			}
 		}()

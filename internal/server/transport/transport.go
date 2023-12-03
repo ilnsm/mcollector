@@ -2,10 +2,11 @@ package transport
 
 import (
 	"encoding/json"
-	"github.com/ilnsm/mcollector/internal/storage/file"
 	"html/template"
 	"net/http"
 	"strconv"
+
+	"github.com/ilnsm/mcollector/internal/storage/file"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/ilnsm/mcollector/internal/models"
