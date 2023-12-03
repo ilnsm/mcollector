@@ -3,10 +3,11 @@ package file
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ilnsm/mcollector/internal/models"
-	"github.com/rs/zerolog"
 	"io"
 	"os"
+
+	"github.com/ilnsm/mcollector/internal/models"
+	"github.com/rs/zerolog"
 )
 
 type Storage interface {
@@ -33,7 +34,6 @@ func newProducer(filename string) (*producer, error) {
 		file:    file,
 		encoder: json.NewEncoder(file),
 	}, nil
-
 }
 func (p *producer) close() error {
 	return p.file.Close()

@@ -3,9 +3,10 @@ package compress
 import (
 	"compress/gzip"
 	"fmt"
-	"github.com/rs/zerolog"
 	"io"
 	"net/http"
+
+	"github.com/rs/zerolog"
 )
 
 const compressFunc = "gzip"
