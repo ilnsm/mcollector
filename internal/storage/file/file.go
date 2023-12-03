@@ -1,11 +1,11 @@
 package file
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"github.com/ilnsm/mcollector/internal/models"
 	"github.com/rs/zerolog"
+	"io"
 	"os"
 )
 
@@ -41,7 +41,7 @@ func (p *producer) close() error {
 
 type consumer struct {
 	file    *os.File
-	scanner *bufio.Scanner
+	decoder *json.Decoder
 }
 
 func newConsumer(filename string) (*consumer, error) {
@@ -52,25 +52,17 @@ func newConsumer(filename string) (*consumer, error) {
 
 	return &consumer{
 		file:    file,
-		scanner: bufio.NewScanner(file),
+		decoder: json.NewDecoder(file),
 	}, nil
 }
 
-func (c *consumer) readMetric() (*models.Metrics, error) {
-	metric := models.Metrics{}
+func (c *consumer) readMetric() (models.Metrics, error) {
+	var metric models.Metrics
 
-	if !c.scanner.Scan() {
-		return nil, c.scanner.Err()
+	if err := c.decoder.Decode(&metric); err != nil {
+		return models.Metrics{}, err
 	}
-
-	data := c.scanner.Bytes()
-
-	err := json.Unmarshal(data, &metric)
-	if err != nil {
-		return nil, err
-	}
-
-	return &metric, nil
+	return metric, nil
 }
 
 func (c *consumer) close() error {
@@ -115,21 +107,22 @@ func RestoreMetrics(s Storage, filename string, l zerolog.Logger) error {
 	defer c.close()
 
 	for {
-		m, err := c.readMetric()
-		fmt.Printf("print metric: %+v\n", m)
-		fmt.Println(m.MType)
-		fmt.Println(err)
-		if m != nil || err != nil {
-			break
+		metric, err := c.readMetric()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return fmt.Errorf("%s: %w", wrapError, err)
 		}
-		switch m.MType {
+
+		switch metric.MType {
 		case models.Counter:
-			if err := s.InsertCounter(m.ID, *m.Delta); err != nil {
-				l.Error().Err(err).Msgf("cannot restore counter %s", m.ID)
+			if err := s.InsertCounter(metric.ID, *metric.Delta); err != nil {
+				l.Error().Err(err).Msgf("cannot restore counter %s", metric.ID)
 			}
 		case models.Gauge:
-			if err := s.InsertGauge(m.ID, *m.Value); err != nil {
-				l.Error().Err(err).Msgf("cannot restore gauge %s", m.ID)
+			if err := s.InsertGauge(metric.ID, *metric.Value); err != nil {
+				l.Error().Err(err).Msgf("cannot restore gauge %s", metric.ID)
 			}
 		}
 	}
