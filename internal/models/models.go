@@ -6,3 +6,6 @@ type Metrics struct {
 	ID    string   `json:"id"`              // имя метрики
 	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
 }
+
+const Counter = "counter"
+const Gauge = "gauge"

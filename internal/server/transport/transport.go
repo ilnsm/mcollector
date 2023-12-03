@@ -2,6 +2,7 @@ package transport
 
 import (
 	"encoding/json"
+	"github.com/ilnsm/mcollector/internal/storage/file"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -37,7 +38,7 @@ func UpdateTheMetric(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		mType, mName, mValue := chi.URLParam(r, "mType"), chi.URLParam(r, "mName"), chi.URLParam(r, "mValue")
 		switch mType {
-		case "gauge":
+		case models.Gauge:
 			{
 				v, err := strconv.ParseFloat(mValue, 64)
 				if err != nil {
@@ -51,7 +52,7 @@ func UpdateTheMetric(a *API) http.HandlerFunc {
 				w.WriteHeader(http.StatusOK)
 			}
 
-		case "counter":
+		case models.Counter:
 			{
 				v, err := strconv.ParseInt(mValue, 10, 64)
 				if err != nil {
@@ -68,6 +69,13 @@ func UpdateTheMetric(a *API) http.HandlerFunc {
 		default:
 			w.WriteHeader(http.StatusBadRequest)
 		}
+		if a.Cfg.StoreInterval == 0 {
+			a.Log.Debug().Msg("attempt to flush metrics in handler")
+			err := file.FlushMetrics(a.Storage, a.Cfg.FileStoragePath)
+			if err != nil {
+				a.Log.Error().Err(err).Msg("cannot flush metrics in handler")
+			}
+		}
 	}
 }
 
@@ -76,7 +84,7 @@ func GetTheMetric(a *API) http.HandlerFunc {
 		mType, mName := chi.URLParam(r, "mType"), chi.URLParam(r, "mName")
 
 		switch mType {
-		case "gauge":
+		case models.Gauge:
 			v, err := a.Storage.SelectGauge(mName)
 			if err != nil {
 				http.NotFound(w, r)
@@ -87,7 +95,7 @@ func GetTheMetric(a *API) http.HandlerFunc {
 				log.Err(err)
 			}
 
-		case "counter":
+		case models.Counter:
 			{
 				v, err := a.Storage.SelectCounter(mName)
 				if err != nil {
@@ -137,7 +145,7 @@ func UpdateTheMetricWithJSON(a *API) http.HandlerFunc {
 			return
 		}
 		switch m.MType {
-		case "gauge":
+		case models.Gauge:
 			err := a.Storage.InsertGauge(m.ID, *m.Value)
 			if err != nil {
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -158,7 +166,7 @@ func UpdateTheMetricWithJSON(a *API) http.HandlerFunc {
 			w.WriteHeader(http.StatusOK)
 			a.Log.Debug().Msg("sending HTTP 200 response")
 
-		case "counter":
+		case models.Counter:
 			err := a.Storage.InsertCounter(m.ID, *m.Delta)
 			if err != nil {
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -181,6 +189,13 @@ func UpdateTheMetricWithJSON(a *API) http.HandlerFunc {
 		default:
 			http.Error(w, "Bad request", http.StatusBadRequest)
 		}
+		if a.Cfg.StoreInterval == 0 {
+			a.Log.Debug().Msg("attempt to flush metrics in handler")
+			err := file.FlushMetrics(a.Storage, a.Cfg.FileStoragePath)
+			if err != nil {
+				a.Log.Error().Err(err).Msg("cannot flush metrics in handler")
+			}
+		}
 	}
 }
 
@@ -192,7 +207,7 @@ func GetTheMetricWithJSON(a *API) http.HandlerFunc {
 			return
 		}
 		switch m.MType {
-		case "gauge":
+		case models.Gauge:
 			value, err := a.Storage.SelectGauge(m.ID)
 			if err != nil {
 				a.Log.Error().Msg("error getting gauge's value")
@@ -211,7 +226,7 @@ func GetTheMetricWithJSON(a *API) http.HandlerFunc {
 			w.WriteHeader(http.StatusOK)
 			a.Log.Debug().Msg("sending HTTP 200 response")
 
-		case "counter":
+		case models.Counter:
 			delta, err := a.Storage.SelectCounter(m.ID)
 			if err != nil {
 				a.Log.Error().Msg("error getting counter's value")

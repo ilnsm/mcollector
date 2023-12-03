@@ -38,7 +38,9 @@ func Run() {
 	var mModel models.Metrics
 
 	mTicker := time.NewTicker(cfg.PollInterval)
+	defer mTicker.Stop()
 	reqTicker := time.NewTicker(cfg.ReportInterval)
+	defer reqTicker.Stop()
 
 	var pollCounter int64
 	for {
