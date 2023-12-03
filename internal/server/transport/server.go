@@ -46,9 +46,9 @@ func (a *API) Run() error {
 
 func (a *API) registerAPI() chi.Router {
 	r := chi.NewRouter()
+	r.Use(compress.DecompressRequest(a.Log))
 	r.Use(logger.RequestLogger(a.Log))
 	r.Use(compress.CompressResponse(a.Log))
-	r.Use(compress.DecompressRequest(a.Log))
 
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", UpdateTheMetricWithJSON(a))

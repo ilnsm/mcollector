@@ -89,7 +89,6 @@ Content-Type: text/html
 POST http://{{default_url}}/value
 Content-Type: application/json
 Accept-Encoding: gzip
-Content-Encoding: gzip
 
 {"id": "gaugeNameJSON",
   "type": "gauge",
