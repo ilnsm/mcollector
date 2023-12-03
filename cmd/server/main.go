@@ -44,13 +44,11 @@ func main() {
 		defer t.Stop()
 
 		go func() {
-			select {
-			case <-t.C:
-				logger.Debug().Msg("attempt to flush metrics by ticker")
-				err := file.FlushMetrics(storage, cfg.FileStoragePath)
-				if err != nil {
-					logger.Error().Err(err).Msg("cannot flush metrics in time")
-				}
+			<-t.C
+			logger.Debug().Msg("attempt to flush metrics by ticker")
+			err := file.FlushMetrics(storage, cfg.FileStoragePath)
+			if err != nil {
+				logger.Error().Err(err).Msg("cannot flush metrics in time")
 			}
 		}()
 	}
