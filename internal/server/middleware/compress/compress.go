@@ -1,14 +1,11 @@
 package compress
 
 import (
-	"bytes"
 	"compress/gzip"
 	"fmt"
+	"github.com/rs/zerolog"
 	"io"
 	"net/http"
-	"strings"
-
-	"github.com/rs/zerolog"
 )
 
 const compressFunc = "gzip"
@@ -51,18 +48,14 @@ func DecompressRequest(log zerolog.Logger) func(next http.Handler) http.Handler 
 				return
 			}
 
-			body, err := io.ReadAll(r.Body)
-			if err != nil {
-				log.Error().Err(err).Msg(wrapErr)
-			}
-			decompressed, err := decompressGzip(body, log)
+			decompressed, err := decompressGzip(r.Body, log)
 			if err != nil {
 				log.Error().Err(err).Msg(wrapErr)
 				http.Error(w, "failed to decompress data", http.StatusInternalServerError)
 				return
 			}
 
-			r.Body = io.NopCloser(strings.NewReader(string(decompressed)))
+			r.Body = io.NopCloser(decompressed)
 
 			next.ServeHTTP(w, r)
 		})
@@ -119,8 +112,8 @@ func matchCompressFunc(headers []string, compressFunc string) bool {
 	return false
 }
 
-func decompressGzip(data []byte, log zerolog.Logger) ([]byte, error) {
-	r, err := gzip.NewReader(bytes.NewReader(data))
+func decompressGzip(data io.Reader, log zerolog.Logger) (io.Reader, error) {
+	r, err := gzip.NewReader(data)
 	if err != nil {
 		return nil, fmt.Errorf("decompressGzip error: %w", err)
 	}
@@ -131,10 +124,5 @@ func decompressGzip(data []byte, log zerolog.Logger) ([]byte, error) {
 		}
 	}()
 
-	var b bytes.Buffer
-	_, err = b.ReadFrom(r)
-	if err != nil {
-		return nil, fmt.Errorf("decompressGzip error: %w", err)
-	}
-	return b.Bytes(), nil
+	return r, nil
 }
