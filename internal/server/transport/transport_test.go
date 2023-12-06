@@ -1,6 +1,8 @@
 package transport
 
 import (
+	memorystorage "github.com/ilnsm/mcollector/internal/storage/memory"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,35 +11,13 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type MockStorage struct {
-	// Implement necessary fields for mock storage
-}
-
-func (s *MockStorage) InsertGauge(name string, value float64) error {
-	return nil
-}
-
-func (s *MockStorage) InsertCounter(name string, value int64) error {
-	return nil
-}
-func (s *MockStorage) SelectGauge(k string) (float64, error) {
-	return 0, nil
-}
-func (s *MockStorage) SelectCounter(k string) (int64, error) {
-	return 0, nil
-}
-
-func (s *MockStorage) GetCounters() map[string]int64 {
-	return nil
-}
-func (s *MockStorage) GetGauges() map[string]float64 {
-	return nil
-}
-
 func TestUpdateTheMetric(t *testing.T) {
 	// Create a mock API instance with a mock storage
-	mockStorage := &MockStorage{}
-	mockAPI := &API{Storage: mockStorage, Log: zerolog.Logger{}, Cfg: config.Config{}}
+	storage, err := memorystorage.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+	mockAPI := &API{Storage: storage, Log: zerolog.Logger{}, Cfg: config.Config{}}
 
 	tests := []struct {
 		name       string
@@ -46,25 +26,6 @@ func TestUpdateTheMetric(t *testing.T) {
 		body       string
 		statusCode int
 	}{
-		// Test Case 1: Successful update of a gauge
-		//{
-		//	name:       "UpdateGaugeSuccess",
-		//	url:        "/update/gauge/myGauge/42.0",
-		//	method:     "POST",
-		//	body:       "",
-		//	statusCode: http.StatusOK,
-		// },
-		//
-		//// Test Case 2: Successful update of a counter
-		//{
-		//	name:       "UpdateCounterSuccess",
-		//	url:        "/update/counter/myCounter/10",
-		//	method:     "POST",
-		//	body:       "",
-		//	statusCode: http.StatusOK,
-		// },
-
-		// Test Case 3: Bad request (invalid value for gauge)
 		{
 			name:       "BadRequestInvalidGaugeValue",
 			url:        "/update/gauge/myGauge/invalidValue",
