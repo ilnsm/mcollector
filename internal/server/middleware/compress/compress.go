@@ -78,6 +78,7 @@ func CompressResponse(log zerolog.Logger) func(next http.Handler) http.Handler {
 			gz, err := gzip.NewWriterLevel(w, gzip.BestCompression)
 			if err != nil {
 				log.Error().Err(err).Msg(wrapError)
+				return
 			}
 			defer gz.Close()
 			w.Header().Set("Content-Encoding", "gzip")
