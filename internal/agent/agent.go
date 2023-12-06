@@ -58,6 +58,7 @@ func Run() {
 				v, err := strconv.ParseFloat(value, 64)
 				if err != nil {
 					log.Error().Msg("error convert string to float")
+					break
 				}
 				mModel.Value = &v
 
@@ -89,12 +90,14 @@ func Run() {
 }
 
 func doRequestWithJSON(endpoint string, m models.Metrics, client *http.Client) error {
+
 	const wrapError = "do request error"
-	endpoint = fmt.Sprintf("%v%v%v", defaultSchema, endpoint, updatePath)
+
 	jsonData, err := json.Marshal(m)
 	if err != nil {
 		return fmt.Errorf("error marshaling JSON: %w", err)
 	}
+
 	var buf bytes.Buffer
 	g := gzip.NewWriter(&buf)
 	if _, err = g.Write(jsonData); err != nil {
@@ -103,19 +106,26 @@ func doRequestWithJSON(endpoint string, m models.Metrics, client *http.Client) e
 	if err = g.Close(); err != nil {
 		return fmt.Errorf("%s: %w", wrapError, err)
 	}
+
+	endpoint = fmt.Sprintf("%v%v%v", defaultSchema, endpoint, updatePath)
+
 	request, err := http.NewRequest(http.MethodPost, endpoint, &buf)
 	if err != nil {
 		return fmt.Errorf("%s: %w", wrapError, err)
 	}
+
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Content-Encoding", "gzip")
+
 	r, err := client.Do(request)
 	if err != nil {
 		return fmt.Errorf("%s: %w", wrapError, err)
 	}
+
 	err = r.Body.Close()
 	if err != nil {
 		return fmt.Errorf("%s: %w", wrapError, err)
 	}
+
 	return nil
 }
