@@ -1,15 +1,11 @@
 package main
 
 import (
-	"os"
-	"time"
-
-	"github.com/ilnsm/mcollector/internal/server/transport"
-	"github.com/ilnsm/mcollector/internal/storage/file"
-
 	"github.com/ilnsm/mcollector/internal/server/config"
+	"github.com/ilnsm/mcollector/internal/server/transport"
 	memorystorage "github.com/ilnsm/mcollector/internal/storage/memory"
 	"github.com/rs/zerolog"
+	"os"
 )
 
 func main() {
@@ -27,34 +23,6 @@ func main() {
 
 	setLogLevel(cfg.LogLevel)
 	api := transport.New(cfg, storage, logger)
-
-	if cfg.Restore {
-		logger.Debug().Msg("append to restore metrics")
-
-		err := file.RestoreMetrics(storage, cfg.FileStoragePath, logger)
-		if err != nil {
-			logger.Error().Err(err).Msg("cannot restore the data")
-		}
-
-		logger.Debug().Msg("restored metrics")
-	}
-
-	if cfg.StoreInterval > 0 {
-
-		go func() {
-
-			t := time.NewTicker(cfg.StoreInterval)
-			defer t.Stop()
-
-			for range t.C {
-				logger.Debug().Msg("attempt to flush metrics by ticker")
-				err := file.FlushMetrics(storage, cfg.FileStoragePath)
-				if err != nil {
-					logger.Error().Err(err).Msg("cannot flush metrics in time")
-				}
-			}
-		}()
-	}
 
 	if err := api.Run(); err != nil {
 		logger.Fatal().Err(err).Send()
