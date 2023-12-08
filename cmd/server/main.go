@@ -3,21 +3,22 @@ package main
 import (
 	"os"
 
+	"github.com/ilnsm/mcollector/internal/storage"
+
 	"github.com/ilnsm/mcollector/internal/server/config"
 	"github.com/ilnsm/mcollector/internal/server/transport"
-	memorystorage "github.com/ilnsm/mcollector/internal/storage/memory"
 	"github.com/rs/zerolog"
 )
 
 func main() {
 	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 
-	storage, err := memorystorage.New()
+	cfg, err := config.New()
 	if err != nil {
 		logger.Fatal().Err(err).Send()
 	}
 
-	cfg, err := config.New()
+	storage, err := storage.New(cfg.FileStoragePath)
 	if err != nil {
 		logger.Fatal().Err(err).Send()
 	}
