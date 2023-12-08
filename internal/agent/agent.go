@@ -90,7 +90,6 @@ func Run() {
 }
 
 func doRequestWithJSON(endpoint string, m models.Metrics, client *http.Client) error {
-
 	const wrapError = "do request error"
 
 	jsonData, err := json.Marshal(m)

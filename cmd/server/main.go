@@ -1,11 +1,12 @@
 package main
 
 import (
+	"os"
+
 	"github.com/ilnsm/mcollector/internal/server/config"
 	"github.com/ilnsm/mcollector/internal/server/transport"
 	memorystorage "github.com/ilnsm/mcollector/internal/storage/memory"
 	"github.com/rs/zerolog"
-	"os"
 )
 
 func main() {
