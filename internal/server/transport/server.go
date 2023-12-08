@@ -1,9 +1,10 @@
 package transport
 
 import (
-	"github.com/ilnsm/mcollector/internal/storage/file"
 	"net/http"
 	"time"
+
+	"github.com/ilnsm/mcollector/internal/storage/file"
 
 	"github.com/ilnsm/mcollector/internal/server/middleware/compress"
 
@@ -53,9 +54,7 @@ func (a *API) Run() error {
 	}
 
 	if a.Cfg.StoreInterval > 0 {
-
 		go func() {
-
 			t := time.NewTicker(a.Cfg.StoreInterval)
 			defer t.Stop()
 
