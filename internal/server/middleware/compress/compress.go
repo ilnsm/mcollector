@@ -10,6 +10,7 @@ import (
 )
 
 const compressFunc = "gzip"
+const contentEncoding = "Content-Encoding"
 
 var allowedContentTypes = []string{
 	"application/javascript",
@@ -26,7 +27,11 @@ type gzipWriter struct {
 }
 
 func (w gzipWriter) Write(b []byte) (int, error) {
-	return w.Writer.Write(b)
+	ww, err := w.Writer.Write(b)
+	if err != nil {
+		return 0, fmt.Errorf("cannot write with gzip: %w", err)
+	}
+	return ww, nil
 }
 
 func DecompressRequest(log zerolog.Logger) func(next http.Handler) http.Handler {
@@ -43,8 +48,8 @@ func DecompressRequest(log zerolog.Logger) func(next http.Handler) http.Handler 
 			log.Debug().Msgf("matched Content-Type in DecompressRequest")
 
 			// If compress function does not match with compressFunc stop processing and return to next handler
-			if !matchCompressFunc(r.Header.Values("Content-Encoding"), compressFunc) {
-				log.Debug().Msg("did not match Content-Encoding")
+			if !matchCompressFunc(r.Header.Values(contentEncoding), compressFunc) {
+				log.Debug().Msgf("did not match %s", contentEncoding)
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -80,7 +85,12 @@ func CompressResponse(log zerolog.Logger) func(next http.Handler) http.Handler {
 				log.Error().Err(err).Msg(wrapError)
 				return
 			}
-			defer gz.Close()
+			defer func() error {
+				if err := gz.Close(); err != nil {
+					log.Error().Err(err).Msg("cannot close gzip in compress response")
+				}
+				return nil
+			}()
 			w.Header().Set("Content-Encoding", "gzip")
 
 			next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)

@@ -1,6 +1,8 @@
 package memorystorage
 
-import "errors"
+import (
+	"errors"
+)
 
 type MemStorage struct {
 	counter map[string]int64

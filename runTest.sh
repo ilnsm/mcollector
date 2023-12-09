@@ -3,7 +3,7 @@
 export LOG_LEVEL=error
 
 
-SERVER_PORT=8080
+SERVER_PORT=8081
 ADDRESS="localhost:${SERVER_PORT}"
 TEMP_FILE=/tmp/practicumTestTempFile
 

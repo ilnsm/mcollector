@@ -1,10 +1,8 @@
 package transport
 
 import (
+	"fmt"
 	"net/http"
-	"time"
-
-	"github.com/ilnsm/mcollector/internal/storage/file"
 
 	"github.com/ilnsm/mcollector/internal/server/middleware/compress"
 
@@ -42,35 +40,11 @@ func New(cfg config.Config, s Storage, l zerolog.Logger) *API {
 func (a *API) Run() error {
 	log.Info().Msgf("Starting server on %s", a.Cfg.Endpoint)
 
-	if a.Cfg.Restore {
-		a.Log.Debug().Msg("append to restore metrics")
-
-		err := file.RestoreMetrics(a.Storage, a.Cfg.FileStoragePath, a.Log)
-		if err != nil {
-			a.Log.Error().Err(err).Msg("cannot restore the data")
-		}
-
-		a.Log.Debug().Msg("restored metrics")
-	}
-
-	if a.Cfg.StoreInterval > 0 {
-		go func() {
-			t := time.NewTicker(a.Cfg.StoreInterval)
-			defer t.Stop()
-
-			for range t.C {
-				a.Log.Debug().Msg("attempt to flush metrics by ticker")
-				err := file.FlushMetrics(a.Storage, a.Cfg.FileStoragePath)
-				if err != nil {
-					a.Log.Error().Err(err).Msg("cannot flush metrics in time")
-				}
-			}
-		}()
-	}
-
 	r := a.registerAPI()
-
-	return http.ListenAndServe(a.Cfg.Endpoint, r)
+	if err := http.ListenAndServe(a.Cfg.Endpoint, r); err != nil {
+		return fmt.Errorf("run server error: %w", err)
+	}
+	return nil
 }
 
 func (a *API) registerAPI() chi.Router {

@@ -23,10 +23,10 @@ const gauge = "gauge"
 const counter = "counter"
 const cannotCreateRequest = "cannot create request"
 
-func Run() {
+func Run() error {
 	cfg, err := config.New()
 	if err != nil {
-		log.Fatal().Msg("Could not get config")
+		return err
 	}
 
 	log.Info().Msgf("Start server\nPush to %s\nCollecting metrics every %v\n"+
@@ -100,17 +100,17 @@ func doRequestWithJSON(endpoint string, m models.Metrics, client *http.Client) e
 	var buf bytes.Buffer
 	g := gzip.NewWriter(&buf)
 	if _, err = g.Write(jsonData); err != nil {
-		return fmt.Errorf("%s: %w", wrapError, err)
+		return fmt.Errorf("create gzip in %s: %w", wrapError, err)
 	}
 	if err = g.Close(); err != nil {
-		return fmt.Errorf("%s: %w", wrapError, err)
+		return fmt.Errorf("close gzip in %s: %w", wrapError, err)
 	}
 
 	endpoint = fmt.Sprintf("%v%v%v", defaultSchema, endpoint, updatePath)
 
 	request, err := http.NewRequest(http.MethodPost, endpoint, &buf)
 	if err != nil {
-		return fmt.Errorf("%s: %w", wrapError, err)
+		return fmt.Errorf("generate request %s: %w", wrapError, err)
 	}
 
 	request.Header.Set("Content-Type", "application/json")
@@ -123,7 +123,7 @@ func doRequestWithJSON(endpoint string, m models.Metrics, client *http.Client) e
 
 	err = r.Body.Close()
 	if err != nil {
-		return fmt.Errorf("%s: %w", wrapError, err)
+		return fmt.Errorf("body close %s: %w", wrapError, err)
 	}
 
 	return nil
