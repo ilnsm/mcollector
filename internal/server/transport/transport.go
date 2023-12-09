@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/ilnsm/mcollector/internal/storage/file"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/ilnsm/mcollector/internal/models"
 	"github.com/rs/zerolog/log"
@@ -43,7 +41,7 @@ func UpdateTheMetric(a *API) http.HandlerFunc {
 			{
 				v, err := strconv.ParseFloat(mValue, 64)
 				if err != nil {
-					http.Error(w, "Bad request", http.StatusBadRequest)
+					http.Error(w, "Bad request to update gauge", http.StatusBadRequest)
 				}
 				err = a.Storage.InsertGauge(mName, v)
 				if err != nil {
@@ -57,7 +55,7 @@ func UpdateTheMetric(a *API) http.HandlerFunc {
 			{
 				v, err := strconv.ParseInt(mValue, 10, 64)
 				if err != nil {
-					http.Error(w, "Bad request", http.StatusBadRequest)
+					http.Error(w, "Bad request to update counter", http.StatusBadRequest)
 				}
 				err = a.Storage.InsertCounter(mName, v)
 
@@ -69,13 +67,6 @@ func UpdateTheMetric(a *API) http.HandlerFunc {
 			}
 		default:
 			w.WriteHeader(http.StatusBadRequest)
-		}
-		if a.Cfg.StoreInterval == 0 {
-			a.Log.Debug().Msg("attempt to flush metrics in handler")
-			err := file.FlushMetrics(a.Storage, a.Cfg.FileStoragePath)
-			if err != nil {
-				a.Log.Error().Err(err).Msg("cannot flush metrics in handler")
-			}
 		}
 	}
 }
@@ -190,13 +181,13 @@ func UpdateTheMetricWithJSON(a *API) http.HandlerFunc {
 		default:
 			http.Error(w, "Bad request", http.StatusBadRequest)
 		}
-		if a.Cfg.StoreInterval == 0 {
-			a.Log.Debug().Msg("attempt to flush metrics in handler")
-			err := file.FlushMetrics(a.Storage, a.Cfg.FileStoragePath)
-			if err != nil {
-				a.Log.Error().Err(err).Msg("cannot flush metrics in handler")
-			}
-		}
+		// if a.Cfg.StoreInterval == 0 {
+		//	a.Log.Debug().Msg("attempt to flush metrics in handler")
+		//	err := file.FlushMetrics(a.Storage, a.Cfg.FileStoragePath)
+		//	if err != nil {
+		//		a.Log.Error().Err(err).Msg("cannot flush metrics in handler")
+		//	}
+		//}
 	}
 }
 

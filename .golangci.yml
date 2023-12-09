@@ -27,7 +27,7 @@ run:
   # not need updates, such as in a continuous integration and testing system.
   modules-download-mode: readonly
   # Allow multiple parallel golangci-lint instances running.
-  # If false (default) - golangci-lint acquires file lock on start.
+  # If false (default) - golangci-lint acquires filestorage lock on start.
   allow-parallel-runners: false
 
   # Disabled parameters  #
@@ -37,7 +37,7 @@ run:
 
   # Define the Go version limit.
   # Mainly related to generics support since go1.18.
-  # Default: use Go version from the go.mod file, fallback on the env var `GOVERSION`, fallback on 1.18
+  # Default: use Go version from the go.mod filestorage, fallback on the env var `GOVERSION`, fallback on 1.18
   # go:
 
 
@@ -50,7 +50,7 @@ output:
   print-linter-name: true
   # Make issues output unique by line.
   uniq-by-line: true
-  # Add a prefix to the output file references.
+  # Add a prefix to the output filestorage references.
   path-prefix: ""
   # Sort results by: filepath, line and column.
   sort-results: true
@@ -96,7 +96,7 @@ linters-settings:
     ignore-tests: true
     match-constant: true
     min-len: 3
-    min-occurrences: 2
+    min-occurrences: 3
     numbers: false
 
   gocritic:
@@ -443,7 +443,7 @@ issues:
   # Show only new issues created after git revision `REV`.
   # new-from-rev:
 
-  # Show only new issues created in git patch with set file path.
+  # Show only new issues created in git patch with set filestorage path.
   # new-from-patch:
 
 severity:

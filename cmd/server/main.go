@@ -18,7 +18,7 @@ func main() {
 		logger.Fatal().Err(err).Send()
 	}
 
-	storage, err := storage.New(cfg.FileStoragePath)
+	storage, err := storage.New(cfg.FileStoragePath, cfg.Restore, cfg.StoreInterval)
 	if err != nil {
 		logger.Fatal().Err(err).Send()
 	}

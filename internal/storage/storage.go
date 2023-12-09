@@ -1,22 +1,35 @@
 package storage
 
 import (
-	"github.com/ilnsm/mcollector/internal/server/transport"
+	"time"
+
+	"github.com/ilnsm/mcollector/internal/storage/filestorage"
 	memorystorage "github.com/ilnsm/mcollector/internal/storage/memory"
 )
 
-func New(FileStoragePath string) (transport.Storage, error) {
-	if FileStoragePath != "" {
-		s, err := memorystorage.New()
+type Storage interface {
+	InsertGauge(k string, v float64) error
+	InsertCounter(k string, v int64) error
+	SelectGauge(k string) (float64, error)
+	SelectCounter(k string) (int64, error)
+	GetCounters() map[string]int64
+	GetGauges() map[string]float64
+}
+
+func New(fileStoragePath string,
+	restore bool,
+	storeInterval time.Duration) (Storage, error) {
+	if fileStoragePath != "" {
+		f, err := filestorage.New(fileStoragePath, restore, storeInterval)
 		if err != nil {
 			return nil, err
 		}
-		return s, nil
+		return f, nil
 	}
-	// for backward compatibility
-	s, err := memorystorage.New()
+
+	m, err := memorystorage.New()
 	if err != nil {
 		return nil, err
 	}
-	return s, nil
+	return m, nil
 }
