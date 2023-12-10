@@ -1,7 +1,8 @@
-package filestorage
+package file
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/ilnsm/mcollector/internal/models"
 )
+
+const filePermission = 0600
 
 type Storage interface {
 	InsertGauge(k string, v float64) error
@@ -32,10 +35,7 @@ type FileStorage struct {
 func New(fileStoragePath string,
 	restore bool,
 	storeInterval time.Duration) (*FileStorage, error) {
-	ms, err := memorystorage.New()
-	if err != nil {
-		return nil, err
-	}
+	ms := memorystorage.New()
 
 	f := FileStorage{
 		m:               *ms,
@@ -69,19 +69,19 @@ func New(fileStoragePath string,
 			}
 		}()
 	}
-	log.Debug().Msgf("initialize filestorage with %s filepath and %s store interval", f.FileStoragePath, f.StoreInterval)
+	log.Debug().Msgf("initialize file with %s filepath and %s store interval", f.FileStoragePath, f.StoreInterval)
 	return &f, nil
 }
 
 func (f *FileStorage) InsertGauge(k string, v float64) error {
 	if err := f.m.InsertGauge(k, v); err != nil {
-		return err
+		return fmt.Errorf("InsertGauge: %w", err)
 	}
 	if f.StoreInterval == 0 {
 		log.Debug().Msg("attempt to flush metrics in handler")
 		err := f.FlushMetrics()
 		if err != nil {
-			log.Error().Err(err).Msg("cannot flush metrics in handler")
+			return fmt.Errorf("cannot flush metrics in handler: %w", err)
 		}
 	}
 	return nil
@@ -89,13 +89,13 @@ func (f *FileStorage) InsertGauge(k string, v float64) error {
 
 func (f *FileStorage) InsertCounter(k string, v int64) error {
 	if err := f.m.InsertCounter(k, v); err != nil {
-		return err
+		return fmt.Errorf("InsertCounter: %w", err)
 	}
 	if f.StoreInterval == 0 {
 		log.Debug().Msg("attempt to flush metrics in handler")
 		err := f.FlushMetrics()
 		if err != nil {
-			log.Error().Err(err).Msg("cannot flush metrics in handler")
+			return fmt.Errorf("cannot flush metrics in handler: %w", err)
 		}
 	}
 	return nil
@@ -104,7 +104,7 @@ func (f *FileStorage) InsertCounter(k string, v int64) error {
 func (f *FileStorage) SelectGauge(k string) (float64, error) {
 	v, err := f.m.SelectGauge(k)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("filestorage: %w", err)
 	}
 	return v, nil
 }
@@ -112,7 +112,7 @@ func (f *FileStorage) SelectGauge(k string) (float64, error) {
 func (f *FileStorage) SelectCounter(k string) (int64, error) {
 	v, err := f.m.SelectCounter(k)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("filestorage: %w", err)
 	}
 	return v, nil
 }
@@ -133,9 +133,9 @@ type producer struct {
 }
 
 func newProducer(filename string) (*producer, error) {
-	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0666)
+	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, filePermission)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("newProduce: %w", err)
 	}
 
 	return &producer{
@@ -144,7 +144,10 @@ func newProducer(filename string) (*producer, error) {
 	}, nil
 }
 func (p *producer) close() error {
-	return p.file.Close()
+	if err := p.file.Close(); err != nil {
+		return fmt.Errorf("producer close: %w", err)
+	}
+	return nil
 }
 
 type consumer struct {
@@ -153,9 +156,9 @@ type consumer struct {
 }
 
 func newConsumer(filename string) (*consumer, error) {
-	file, err := os.OpenFile(filename, os.O_RDONLY|os.O_CREATE, 0666)
+	file, err := os.OpenFile(filename, os.O_RDONLY|os.O_CREATE, filePermission)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("newConsumer: %w", err)
 	}
 
 	return &consumer{
@@ -168,18 +171,21 @@ func (c *consumer) readMetric() (models.Metrics, error) {
 	var metric models.Metrics
 
 	if err := c.decoder.Decode(&metric); err != nil {
-		return models.Metrics{}, err
+		return models.Metrics{}, fmt.Errorf("readMetric: %w", err)
 	}
 	return metric, nil
 }
 
 func (c *consumer) close() error {
-	return c.file.Close()
+	if err := c.file.Close(); err != nil {
+		return fmt.Errorf("consumer close: %w", err)
+	}
+	return nil
 }
 
 func (p *producer) writeMetric(metric models.Metrics) error {
 	if err := p.encoder.Encode(metric); err != nil {
-		return err
+		return fmt.Errorf("writeMetric: %w", err)
 	}
 	return nil
 }
@@ -191,7 +197,12 @@ func (f *FileStorage) FlushMetrics() error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", wrapError, err)
 	}
-	defer p.close()
+
+	defer func() {
+		if err := p.close(); err != nil {
+			log.Error().Err(err).Msg("cannot close gzip in compress response")
+		}
+	}()
 
 	counters := f.m.GetCounters()
 	log.Debug().Msg("try to flush counters")
@@ -214,12 +225,17 @@ func (f *FileStorage) RestoreMetrics() error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", wrapError, err)
 	}
-	defer c.close()
+
+	defer func() {
+		if err := c.close(); err != nil {
+			log.Error().Err(err).Msg("cannot close gzip in compress response")
+		}
+	}()
 
 	for {
 		metric, err := c.readMetric()
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			return fmt.Errorf("%s: %w", wrapError, err)

@@ -9,9 +9,9 @@ type MemStorage struct {
 	gauge   map[string]float64
 }
 
-func New() (*MemStorage, error) {
+func New() *MemStorage {
 	s := MemStorage{make(map[string]int64), make(map[string]float64)}
-	return &s, nil
+	return &s
 }
 
 func (m *MemStorage) InsertGauge(k string, v float64) error {
