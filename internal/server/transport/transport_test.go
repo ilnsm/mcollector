@@ -1,7 +1,6 @@
 package transport
 
 import (
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,10 +13,7 @@ import (
 
 func TestUpdateTheMetric(t *testing.T) {
 	// Create a mock API instance with a mock storage
-	storage, err := memorystorage.New()
-	if err != nil {
-		log.Fatal(err)
-	}
+	storage := memorystorage.New()
 	mockAPI := &API{Storage: storage, Log: zerolog.Logger{}, Cfg: config.Config{}}
 
 	tests := []struct {

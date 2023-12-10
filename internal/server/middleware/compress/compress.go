@@ -85,11 +85,11 @@ func CompressResponse(log zerolog.Logger) func(next http.Handler) http.Handler {
 				log.Error().Err(err).Msg(wrapError)
 				return
 			}
-			defer func() error {
+
+			defer func() {
 				if err := gz.Close(); err != nil {
 					log.Error().Err(err).Msg("cannot close gzip in compress response")
 				}
-				return nil
 			}()
 			w.Header().Set("Content-Encoding", "gzip")
 

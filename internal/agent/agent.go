@@ -26,7 +26,7 @@ const cannotCreateRequest = "cannot create request"
 func Run() error {
 	cfg, err := config.New()
 	if err != nil {
-		return err
+		return fmt.Errorf("run agent error: %w", err)
 	}
 
 	log.Info().Msgf("Start server\nPush to %s\nCollecting metrics every %v\n"+

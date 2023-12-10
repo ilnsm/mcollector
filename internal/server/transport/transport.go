@@ -32,6 +32,8 @@ const htmlTemplate = `
 </body>
 </html>
 `
+const contentType = "Content-Type"
+const applicationJSON = "application/json"
 
 func UpdateTheMetric(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -121,7 +123,7 @@ func ListAllMetrics(a *API) http.HandlerFunc {
 		for i, v := range g {
 			data[i] = strconv.FormatFloat(v, 'f', -1, 64)
 		}
-		w.Header().Set("Content-Type", "text/html")
+		w.Header().Set(contentType, "text/html")
 		err = tmpl.Execute(w, data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -148,15 +150,15 @@ func UpdateTheMetricWithJSON(a *API) http.HandlerFunc {
 			if err != nil {
 				a.Log.Error().Msg("error get gauge's value ")
 			}
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set(contentType, applicationJSON)
 			enc := json.NewEncoder(w)
 			if err = enc.Encode(m); err != nil {
-				a.Log.Error().Str("func", "UpdateTheMetricWithJSON").Msg("connote encode answer")
+				a.Log.Error().Str("func", "UpdateTheMetricWithJSON").Msg("")
 				return
 			}
 
 			w.WriteHeader(http.StatusOK)
-			a.Log.Debug().Msg("sending HTTP 200 response")
+			a.Log.Debug().Msg("sending HTTP 200 response, json handler")
 
 		case models.Counter:
 			err := a.Storage.InsertCounter(m.ID, *m.Delta)
@@ -169,25 +171,18 @@ func UpdateTheMetricWithJSON(a *API) http.HandlerFunc {
 			if err != nil {
 				a.Log.Error().Msg("error get counter's value ")
 			}
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set(contentType, applicationJSON)
 			enc := json.NewEncoder(w)
 			if err = enc.Encode(m); err != nil {
-				a.Log.Error().Str("func", "UpdateTheMetricWithJSON").Msg("connote encode answer")
+				a.Log.Error().Str("func", "UpdateTheMetricWithJSON").Msg("")
 				return
 			}
 
 			w.WriteHeader(http.StatusOK)
-			a.Log.Debug().Msg("sending HTTP 200 response")
+			a.Log.Debug().Msg("sending HTTP 200 response, json handler")
 		default:
 			http.Error(w, "Bad request", http.StatusBadRequest)
 		}
-		// if a.Cfg.StoreInterval == 0 {
-		//	a.Log.Debug().Msg("attempt to flush metrics in handler")
-		//	err := file.FlushMetrics(a.Storage, a.Cfg.FileStoragePath)
-		//	if err != nil {
-		//		a.Log.Error().Err(err).Msg("cannot flush metrics in handler")
-		//	}
-		//}
 	}
 }
 
@@ -204,14 +199,14 @@ func GetTheMetricWithJSON(a *API) http.HandlerFunc {
 			if err != nil {
 				a.Log.Error().Msg("error getting gauge's value")
 				w.WriteHeader(http.StatusNotFound)
-				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set(contentType, applicationJSON)
 				return
 			}
 			m.Value = &value
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set(contentType, applicationJSON)
 			enc := json.NewEncoder(w)
 			if err := enc.Encode(m); err != nil {
-				a.Log.Error().Str("func", "UpdateTheMetricWithJSON").Msg("connote encode answer")
+				a.Log.Error().Str("func", "GetTheMetricWithJSON").Msg("")
 				return
 			}
 
@@ -223,14 +218,14 @@ func GetTheMetricWithJSON(a *API) http.HandlerFunc {
 			if err != nil {
 				a.Log.Error().Msg("error getting counter's value")
 				w.WriteHeader(http.StatusNotFound)
-				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set(contentType, applicationJSON)
 				return
 			}
 			m.Delta = &delta
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set(contentType, applicationJSON)
 			enc := json.NewEncoder(w)
 			if err := enc.Encode(m); err != nil {
-				a.Log.Error().Str("func", "UpdateTheMetricWithJSON").Msg("connote encode answer")
+				a.Log.Error().Str("func", "GetTheMetricWithJSON").Msg("")
 				return
 			}
 

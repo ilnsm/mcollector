@@ -1,9 +1,10 @@
 package storage
 
 import (
+	"fmt"
 	"time"
 
-	"github.com/ilnsm/mcollector/internal/storage/filestorage"
+	"github.com/ilnsm/mcollector/internal/storage/file"
 	memorystorage "github.com/ilnsm/mcollector/internal/storage/memory"
 )
 
@@ -20,16 +21,12 @@ func New(fileStoragePath string,
 	restore bool,
 	storeInterval time.Duration) (Storage, error) {
 	if fileStoragePath != "" {
-		f, err := filestorage.New(fileStoragePath, restore, storeInterval)
+		f, err := file.New(fileStoragePath, restore, storeInterval)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("new storage error: %w", err)
 		}
 		return f, nil
 	}
 
-	m, err := memorystorage.New()
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
+	return memorystorage.New(), nil
 }
