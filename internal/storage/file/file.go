@@ -47,7 +47,7 @@ func New(fileStoragePath string,
 	if f.Restore {
 		log.Debug().Msg("append to restore metrics")
 
-		err := f.RestoreMetrics()
+		err := f.restoreMetrics()
 		if err != nil {
 			log.Error().Err(err).Msg("cannot restore the data")
 		}
@@ -62,7 +62,7 @@ func New(fileStoragePath string,
 
 			for range t.C {
 				log.Debug().Msg("attempt to flush metrics by ticker")
-				err := f.FlushMetrics()
+				err := f.flushMetrics()
 				if err != nil {
 					log.Error().Err(err).Msg("cannot flush metrics in time")
 				}
@@ -79,7 +79,7 @@ func (f *FileStorage) InsertGauge(k string, v float64) error {
 	}
 	if f.StoreInterval == 0 {
 		log.Debug().Msg("attempt to flush metrics in handler")
-		err := f.FlushMetrics()
+		err := f.flushMetrics()
 		if err != nil {
 			return fmt.Errorf("cannot flush metrics in handler: %w", err)
 		}
@@ -93,7 +93,7 @@ func (f *FileStorage) InsertCounter(k string, v int64) error {
 	}
 	if f.StoreInterval == 0 {
 		log.Debug().Msg("attempt to flush metrics in handler")
-		err := f.FlushMetrics()
+		err := f.flushMetrics()
 		if err != nil {
 			return fmt.Errorf("cannot flush metrics in handler: %w", err)
 		}
@@ -190,7 +190,7 @@ func (p *producer) writeMetric(metric models.Metrics) error {
 	return nil
 }
 
-func (f *FileStorage) FlushMetrics() error {
+func (f *FileStorage) flushMetrics() error {
 	const wrapError = "flush metrics error"
 
 	p, err := newProducer(f.FileStoragePath)
@@ -218,7 +218,7 @@ func (f *FileStorage) FlushMetrics() error {
 	return nil
 }
 
-func (f *FileStorage) RestoreMetrics() error {
+func (f *FileStorage) restoreMetrics() error {
 	const wrapError = "restore metrics error"
 
 	c, err := newConsumer(f.FileStoragePath)
