@@ -18,13 +18,13 @@ func main() {
 		logger.Fatal().Err(err).Send()
 	}
 
-	storage, err := storage.New(cfg.FileStoragePath, cfg.Restore, cfg.StoreInterval)
+	s, err := storage.New(cfg.FileStoragePath, cfg.Restore, cfg.StoreInterval)
 	if err != nil {
 		logger.Fatal().Err(err).Send()
 	}
 
 	setLogLevel(cfg.LogLevel)
-	api := transport.New(cfg, storage, logger)
+	api := transport.New(cfg, s, logger)
 
 	if err := api.Run(); err != nil {
 		logger.Fatal().Err(err).Send()
