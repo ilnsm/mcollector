@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,6 +15,7 @@ import (
 func TestUpdateTheMetric(t *testing.T) {
 	// Create a mock API instance with a mock storage
 	storage := memorystorage.New()
+	ctx := context.Background()
 	mockAPI := &API{Storage: storage, Log: zerolog.Logger{}, Cfg: config.Config{}}
 
 	tests := []struct {
@@ -62,7 +64,7 @@ func TestUpdateTheMetric(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			// Call the handler function
-			handler := UpdateTheMetric(mockAPI)
+			handler := UpdateTheMetric(ctx, mockAPI)
 			handler(w, req)
 
 			// Check the response status code

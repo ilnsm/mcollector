@@ -25,3 +25,4 @@ vendor/
 .vscode
 golangci-lint/
 test.result
+pgDATA/

@@ -1,27 +1,37 @@
 package storage
 
 import (
+	"context"
 	"fmt"
-	"time"
 
+	"github.com/ilnsm/mcollector/internal/server/config"
 	"github.com/ilnsm/mcollector/internal/storage/file"
 	memorystorage "github.com/ilnsm/mcollector/internal/storage/memory"
+	"github.com/ilnsm/mcollector/internal/storage/postgres"
 )
 
 type Storage interface {
-	InsertGauge(k string, v float64) error
-	InsertCounter(k string, v int64) error
-	SelectGauge(k string) (float64, error)
-	SelectCounter(k string) (int64, error)
-	GetCounters() map[string]int64
-	GetGauges() map[string]float64
+	InsertGauge(ctx context.Context, k string, v float64) error
+	InsertCounter(ctx context.Context, k string, v int64) error
+	SelectGauge(ctx context.Context, k string) (float64, error)
+	SelectCounter(ctx context.Context, k string) (int64, error)
+	GetCounters(ctx context.Context) map[string]int64
+	GetGauges(ctx context.Context) map[string]float64
+	Ping(ctx context.Context) error
 }
 
-func New(fileStoragePath string,
-	restore bool,
-	storeInterval time.Duration) (Storage, error) {
-	if fileStoragePath != "" {
-		f, err := file.New(fileStoragePath, restore, storeInterval)
+func New(ctx context.Context, cfg config.Config) (Storage, error) {
+
+	if cfg.Database_DSN != "" {
+		db, err := postgres.NewDB(ctx, cfg.Database_DSN)
+		if err != nil {
+			return nil, fmt.Errorf("failed to init postgres pool: %w", err)
+		}
+		return db, nil
+	}
+
+	if cfg.FileStoragePath != "" {
+		f, err := file.New(ctx, cfg.FileStoragePath, cfg.Restore, cfg.StoreInterval)
 		if err != nil {
 			return nil, fmt.Errorf("new storage error: %w", err)
 		}

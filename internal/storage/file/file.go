@@ -1,6 +1,7 @@
 package file
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,12 +18,13 @@ import (
 const filePermission = 0600
 
 type Storage interface {
-	InsertGauge(k string, v float64) error
-	InsertCounter(k string, v int64) error
-	SelectGauge(k string) (float64, error)
-	SelectCounter(k string) (int64, error)
-	GetCounters() map[string]int64
-	GetGauges() map[string]float64
+	InsertGauge(ctx context.Context, k string, v float64) error
+	InsertCounter(ctx context.Context, k string, v int64) error
+	SelectGauge(ctx context.Context, k string) (float64, error)
+	SelectCounter(ctx context.Context, k string) (int64, error)
+	GetCounters(ctx context.Context) map[string]int64
+	GetGauges(ctx context.Context) map[string]float64
+	Ping(ctx context.Context) error
 }
 
 type FileStorage struct {
@@ -32,7 +34,7 @@ type FileStorage struct {
 	StoreInterval   time.Duration
 }
 
-func New(fileStoragePath string,
+func New(ctx context.Context, fileStoragePath string,
 	restore bool,
 	storeInterval time.Duration) (*FileStorage, error) {
 	ms := memorystorage.New()
@@ -47,7 +49,7 @@ func New(fileStoragePath string,
 	if f.Restore {
 		log.Debug().Msg("append to restore metrics")
 
-		err := f.restoreMetrics()
+		err := f.restoreMetrics(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("cannot restore the data")
 		}
@@ -62,7 +64,7 @@ func New(fileStoragePath string,
 
 			for range t.C {
 				log.Debug().Msg("attempt to flush metrics by ticker")
-				err := f.flushMetrics()
+				err := f.flushMetrics(ctx)
 				if err != nil {
 					log.Error().Err(err).Msg("cannot flush metrics in time")
 				}
@@ -73,13 +75,13 @@ func New(fileStoragePath string,
 	return &f, nil
 }
 
-func (f *FileStorage) InsertGauge(k string, v float64) error {
-	if err := f.m.InsertGauge(k, v); err != nil {
+func (f *FileStorage) InsertGauge(ctx context.Context, k string, v float64) error {
+	if err := f.m.InsertGauge(ctx, k, v); err != nil {
 		return fmt.Errorf("InsertGauge: %w", err)
 	}
 	if f.StoreInterval == 0 {
 		log.Debug().Msg("attempt to flush metrics in handler")
-		err := f.flushMetrics()
+		err := f.flushMetrics(ctx)
 		if err != nil {
 			return fmt.Errorf("cannot flush metrics in handler: %w", err)
 		}
@@ -87,13 +89,13 @@ func (f *FileStorage) InsertGauge(k string, v float64) error {
 	return nil
 }
 
-func (f *FileStorage) InsertCounter(k string, v int64) error {
-	if err := f.m.InsertCounter(k, v); err != nil {
+func (f *FileStorage) InsertCounter(ctx context.Context, k string, v int64) error {
+	if err := f.m.InsertCounter(ctx, k, v); err != nil {
 		return fmt.Errorf("InsertCounter: %w", err)
 	}
 	if f.StoreInterval == 0 {
 		log.Debug().Msg("attempt to flush metrics in handler")
-		err := f.flushMetrics()
+		err := f.flushMetrics(ctx)
 		if err != nil {
 			return fmt.Errorf("cannot flush metrics in handler: %w", err)
 		}
@@ -101,30 +103,34 @@ func (f *FileStorage) InsertCounter(k string, v int64) error {
 	return nil
 }
 
-func (f *FileStorage) SelectGauge(k string) (float64, error) {
-	v, err := f.m.SelectGauge(k)
+func (f *FileStorage) SelectGauge(ctx context.Context, k string) (float64, error) {
+	v, err := f.m.SelectGauge(ctx, k)
 	if err != nil {
 		return 0, fmt.Errorf("filestorage: %w", err)
 	}
 	return v, nil
 }
 
-func (f *FileStorage) SelectCounter(k string) (int64, error) {
-	v, err := f.m.SelectCounter(k)
+func (f *FileStorage) SelectCounter(ctx context.Context, k string) (int64, error) {
+	v, err := f.m.SelectCounter(ctx, k)
 	if err != nil {
 		return 0, fmt.Errorf("filestorage: %w", err)
 	}
 	return v, nil
 }
 
-func (f *FileStorage) GetCounters() map[string]int64 {
-	c := f.m.GetCounters()
+func (f *FileStorage) GetCounters(ctx context.Context) map[string]int64 {
+	c := f.m.GetCounters(ctx)
 	return c
 }
 
-func (f *FileStorage) GetGauges() map[string]float64 {
-	c := f.m.GetGauges()
+func (f *FileStorage) GetGauges(ctx context.Context) map[string]float64 {
+	c := f.m.GetGauges(ctx)
 	return c
+}
+
+func (f *FileStorage) Ping(ctx context.Context) error {
+	return nil
 }
 
 type producer struct {
@@ -190,7 +196,7 @@ func (p *producer) writeMetric(metric models.Metrics) error {
 	return nil
 }
 
-func (f *FileStorage) flushMetrics() error {
+func (f *FileStorage) flushMetrics(ctx context.Context) error {
 	const wrapError = "flush metrics error"
 
 	p, err := newProducer(f.FileStoragePath)
@@ -204,13 +210,13 @@ func (f *FileStorage) flushMetrics() error {
 		}
 	}()
 
-	counters := f.m.GetCounters()
+	counters := f.m.GetCounters(ctx)
 	log.Debug().Msg("try to flush counters")
 	if err = flushCounters(p, counters); err != nil {
 		return fmt.Errorf("%s: %w", wrapError, err)
 	}
 
-	gauges := f.m.GetGauges()
+	gauges := f.m.GetGauges(ctx)
 	log.Debug().Msg("try to flush gauges")
 	if err = flushGauges(p, gauges); err != nil {
 		return fmt.Errorf("%s: %w", wrapError, err)
@@ -218,7 +224,7 @@ func (f *FileStorage) flushMetrics() error {
 	return nil
 }
 
-func (f *FileStorage) restoreMetrics() error {
+func (f *FileStorage) restoreMetrics(ctx context.Context) error {
 	const wrapError = "restore metrics error"
 
 	c, err := newConsumer(f.FileStoragePath)
@@ -243,11 +249,11 @@ func (f *FileStorage) restoreMetrics() error {
 
 		switch metric.MType {
 		case models.Counter:
-			if err := f.m.InsertCounter(metric.ID, *metric.Delta); err != nil {
+			if err := f.m.InsertCounter(ctx, metric.ID, *metric.Delta); err != nil {
 				log.Error().Err(err).Msgf("cannot restore counter %s", metric.ID)
 			}
 		case models.Gauge:
-			if err := f.m.InsertGauge(metric.ID, *metric.Value); err != nil {
+			if err := f.m.InsertGauge(ctx, metric.ID, *metric.Value); err != nil {
 				log.Error().Err(err).Msgf("cannot restore gauge %s", metric.ID)
 			}
 		}

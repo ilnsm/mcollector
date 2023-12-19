@@ -1,12 +1,12 @@
 package main
 
 import (
+	"context"
 	"os"
-
-	"github.com/ilnsm/mcollector/internal/storage"
 
 	"github.com/ilnsm/mcollector/internal/server/config"
 	"github.com/ilnsm/mcollector/internal/server/transport"
+	"github.com/ilnsm/mcollector/internal/storage"
 	"github.com/rs/zerolog"
 )
 
@@ -20,14 +20,16 @@ func main() {
 
 	setLogLevel(cfg.LogLevel)
 
-	s, err := storage.New(cfg.FileStoragePath, cfg.Restore, cfg.StoreInterval)
+	ctx := context.Background()
+
+	s, err := storage.New(ctx, cfg)
 	if err != nil {
 		logger.Fatal().Err(err).Send()
 	}
 
 	api := transport.New(cfg, s, logger)
 
-	if err := api.Run(); err != nil {
+	if err := api.Run(ctx); err != nil {
 		logger.Fatal().Err(err).Send()
 	}
 }
