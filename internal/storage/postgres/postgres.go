@@ -17,10 +17,6 @@ type Storage interface {
 	Ping(ctx context.Context) error
 }
 
-type Config struct {
-	dsn string
-}
-
 type DB struct {
 	pool *pgxpool.Pool
 }
@@ -55,34 +51,37 @@ func initPool(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
 
 func (d DB) InsertGauge(ctx context.Context, k string, v float64) error {
 	// TODO implement me
-	panic("implement me")
+	panic("")
 }
 
 func (d DB) InsertCounter(ctx context.Context, k string, v int64) error {
 	// TODO implement me
-	panic("implement me")
+	panic("")
 }
 
 func (d DB) SelectGauge(ctx context.Context, k string) (float64, error) {
 	// TODO implement me
-	panic("implement me")
+	panic("")
 }
 
 func (d DB) SelectCounter(ctx context.Context, k string) (int64, error) {
 	// TODO implement me
-	panic("implement me")
+	panic("")
 }
 
 func (d DB) GetCounters(ctx context.Context) map[string]int64 {
 	// TODO implement me
-	panic("implement me")
+	panic("")
 }
 
 func (d DB) GetGauges(ctx context.Context) map[string]float64 {
 	// TODO implement me
-	panic("implement me")
+	panic("")
 }
 
 func (d DB) Ping(ctx context.Context) error {
-	return d.pool.Ping(ctx)
+	if err := d.pool.Ping(ctx); err != nil {
+		return fmt.Errorf("cannot ping db: %w", err)
+	}
+	return nil
 }
