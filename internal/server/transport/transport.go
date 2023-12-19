@@ -35,6 +35,7 @@ const htmlTemplate = `
 `
 const contentType = "Content-Type"
 const applicationJSON = "application/json"
+const internalServerError = "Internal server error"
 
 func UpdateTheMetric(ctx context.Context, a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -143,7 +144,7 @@ func UpdateTheMetricWithJSON(ctx context.Context, a *API) http.HandlerFunc {
 		case models.Gauge:
 			err := a.Storage.InsertGauge(ctx, m.ID, *m.Value)
 			if err != nil {
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				http.Error(w, internalServerError, http.StatusInternalServerError)
 				return
 			}
 
@@ -164,7 +165,7 @@ func UpdateTheMetricWithJSON(ctx context.Context, a *API) http.HandlerFunc {
 		case models.Counter:
 			err := a.Storage.InsertCounter(ctx, m.ID, *m.Delta)
 			if err != nil {
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				http.Error(w, internalServerError, http.StatusInternalServerError)
 				return
 			}
 
@@ -241,7 +242,7 @@ func GetTheMetricWithJSON(ctx context.Context, a *API) http.HandlerFunc {
 func PingDB(ctx context.Context, a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := a.Storage.Ping(ctx); err != nil {
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			http.Error(w, internalServerError, http.StatusInternalServerError)
 		}
 	}
 }

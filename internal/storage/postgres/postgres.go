@@ -18,15 +18,15 @@ type Storage interface {
 }
 
 type Config struct {
-	DSN string
+	dsn string
 }
 
 type DB struct {
 	pool *pgxpool.Pool
 }
 
-func NewDB(ctx context.Context, DSN string) (*DB, error) {
-	pool, err := initPool(ctx, DSN)
+func NewDB(ctx context.Context, dsn string) (*DB, error) {
+	pool, err := initPool(ctx, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize a connection pool: %w", err)
 	}
@@ -35,11 +35,10 @@ func NewDB(ctx context.Context, DSN string) (*DB, error) {
 	}, nil
 }
 
-func initPool(ctx context.Context, DSN string) (*pgxpool.Pool, error) {
-
-	pgConfig, err := pgxpool.ParseConfig(DSN)
+func initPool(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
+	pgConfig, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse DSN: %w", err)
+		return nil, fmt.Errorf("failed to parse dsn: %w", err)
 	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, pgConfig)
@@ -54,36 +53,36 @@ func initPool(ctx context.Context, DSN string) (*pgxpool.Pool, error) {
 	return pool, nil
 }
 
-func (D DB) InsertGauge(ctx context.Context, k string, v float64) error {
-	//TODO implement me
+func (d DB) InsertGauge(ctx context.Context, k string, v float64) error {
+	// TODO implement me
 	panic("implement me")
 }
 
-func (D DB) InsertCounter(ctx context.Context, k string, v int64) error {
-	//TODO implement me
+func (d DB) InsertCounter(ctx context.Context, k string, v int64) error {
+	// TODO implement me
 	panic("implement me")
 }
 
-func (D DB) SelectGauge(ctx context.Context, k string) (float64, error) {
-	//TODO implement me
+func (d DB) SelectGauge(ctx context.Context, k string) (float64, error) {
+	// TODO implement me
 	panic("implement me")
 }
 
-func (D DB) SelectCounter(ctx context.Context, k string) (int64, error) {
-	//TODO implement me
+func (d DB) SelectCounter(ctx context.Context, k string) (int64, error) {
+	// TODO implement me
 	panic("implement me")
 }
 
-func (D DB) GetCounters(ctx context.Context) map[string]int64 {
-	//TODO implement me
+func (d DB) GetCounters(ctx context.Context) map[string]int64 {
+	// TODO implement me
 	panic("implement me")
 }
 
-func (D DB) GetGauges(ctx context.Context) map[string]float64 {
-	//TODO implement me
+func (d DB) GetGauges(ctx context.Context) map[string]float64 {
+	// TODO implement me
 	panic("implement me")
 }
 
-func (D DB) Ping(ctx context.Context) error {
-	return D.pool.Ping(ctx)
+func (d DB) Ping(ctx context.Context) error {
+	return d.pool.Ping(ctx)
 }

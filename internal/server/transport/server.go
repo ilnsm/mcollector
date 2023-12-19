@@ -28,9 +28,9 @@ type Storage interface {
 
 type API struct {
 	Storage Storage
+	Conn    *pgx.Conn
 	Log     zerolog.Logger
 	Cfg     config.Config
-	Conn    *pgx.Conn
 }
 
 func New(cfg config.Config, s Storage, l zerolog.Logger) *API {
