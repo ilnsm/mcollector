@@ -1,22 +1,30 @@
-.PHONY: all agent server test lint run_server run_agent
-all: server agent
+.DEFAULT_GOAL := test
 
 export GOLANGCI_LINT_CACHE=${PWD}/golangci-lint/.cache
 export SHELL=/bin/zsh
-
+.PHONY: agent server test lint run_server run_agent
 agent:
 	@go build -o cmd/agent/agent ./cmd/agent/*.go
+
+.PHONY: server
 server:
 	@go build -o cmd/server/server ./cmd/server/*.go
 
-run_server: server
+.PHONY: run_server
+run_server: server postgres
 	@./cmd/server/server
 
+.PHONY: run_agent
 run_agent: agent
 	@./cmd/agent/agent
 
-test: server agent
+.PHONY: test
+test: server agent postgres
 	./runTest.sh |tee test.result
+
+.PHONY: postgres
+postgres:
+	@docker compose up -d
 
 .PHONY: lint
 lint: _golangci-lint-rm-unformatted-report

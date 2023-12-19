@@ -66,3 +66,11 @@ echo "Run test 9"
             -file-storage-path=$TEMP_FILE \
             -server-port=$SERVER_PORT \
             -source-path=.
+
+ echo "Run test 10"
+~/bin/metricstest -test.v -test.run=^TestIteration10[AB]$ \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server \
+            -database-dsn='postgres://mcollector:supersecretpassword@localhost:5432/metrics?sslmode=disable' \
+            -server-port=$SERVER_PORT \
+            -source-path=.
