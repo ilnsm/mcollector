@@ -15,7 +15,7 @@ func ParseFlag(c *Config) {
 	flag.IntVar(&i, "i", defaultFlushInterfal,
 		"Time interval in seconds to flush metrics to file, if set to '0' it will flush synchro")
 	flag.BoolVar(&c.Restore, "r", true, "If true metrics will be restored from file path")
-	flag.StringVar(&c.Database_DSN, "d", "", "postgres dns")
+	flag.StringVar(&c.DatabaseDsn, "d", "", "postgres dns")
 	flag.Parse()
 	c.StoreInterval = time.Duration(i) * time.Second
 }

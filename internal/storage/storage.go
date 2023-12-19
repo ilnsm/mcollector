@@ -21,9 +21,8 @@ type Storage interface {
 }
 
 func New(ctx context.Context, cfg config.Config) (Storage, error) {
-
-	if cfg.Database_DSN != "" {
-		db, err := postgres.NewDB(ctx, cfg.Database_DSN)
+	if cfg.DatabaseDsn != "" {
+		db, err := postgres.NewDB(ctx, cfg.DatabaseDsn)
 		if err != nil {
 			return nil, fmt.Errorf("failed to init postgres pool: %w", err)
 		}
