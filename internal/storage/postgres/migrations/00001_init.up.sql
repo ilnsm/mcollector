@@ -8,7 +8,7 @@ CREATE TABLE gauges (
 CREATE TABLE counters (
                          id VARCHAR(200) PRIMARY KEY UNIQUE NOT NULL,
                          counter INT NOT NULL,
-                         CONSTRAINT counter_positive_check CHECK (counter::numeric > 0)
+                         CONSTRAINT counter_positive_check CHECK (counter::numeric >= 0)
 );
 
 COMMIT;
