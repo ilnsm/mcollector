@@ -74,3 +74,10 @@ echo "Run test 9"
             -database-dsn='postgres://mcollector:supersecretpassword@localhost:5432/metrics?sslmode=disable' \
             -server-port=$SERVER_PORT \
             -source-path=.
+ echo "Run test 11"
+~/bin/metricstest -test.v -test.run=^TestIteration11$ \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server \
+            -database-dsn='postgres://mcollector:supersecretpassword@localhost:5432/metrics?sslmode=disable' \
+            -server-port=$SERVER_PORT \
+            -source-path=.

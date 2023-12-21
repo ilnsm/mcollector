@@ -80,38 +80,110 @@ func runMigrations(dsn string) error {
 	return nil
 }
 
-func (d DB) InsertGauge(ctx context.Context, k string, v float64) error {
-	// TODO implement me
-	panic("")
+func (db DB) InsertGauge(ctx context.Context, k string, v float64) error {
+	tag, err := db.pool.Exec(
+		ctx,
+		`INSERT INTO gauges (id, gauge) VALUES ($1, $2)
+			 ON CONFLICT (id) DO UPDATE SET gauge = EXCLUDED.gauge`,
+		k, v,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to store gauge: %w", err)
+	}
+	rowsAffectedCount := tag.RowsAffected()
+	if rowsAffectedCount != 1 {
+		return fmt.Errorf("expected one row to be affected, actually affected %d", rowsAffectedCount)
+	}
+	return nil
 }
 
-func (d DB) InsertCounter(ctx context.Context, k string, v int64) error {
-	// TODO implement me
-	panic("")
+func (db DB) InsertCounter(ctx context.Context, k string, v int64) error {
+	tag, err := db.pool.Exec(
+		ctx,
+		`INSERT INTO counters (id, counter) VALUES ($1, $2)
+             ON CONFLICT (id) DO UPDATE SET counter = counters.counter + EXCLUDED.counter`,
+		k, v,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to store counter: %w", err)
+	}
+	rowsAffectedCount := tag.RowsAffected()
+	if rowsAffectedCount != 1 {
+		return fmt.Errorf("expected one row to be affected, actually affected %d", rowsAffectedCount)
+	}
+	return nil
 }
 
-func (d DB) SelectGauge(ctx context.Context, k string) (float64, error) {
-	// TODO implement me
-	panic("")
+func (db DB) SelectGauge(ctx context.Context, k string) (float64, error) {
+	var g float64
+	row := db.pool.QueryRow(
+		ctx,
+		`SELECT gauge FROM gauges WHERE id = $1`,
+		k,
+	)
+	if err := row.Scan(&g); err != nil {
+		return 0, fmt.Errorf("failed to select gauge: %w", err)
+	}
+	return g, nil
 }
 
-func (d DB) SelectCounter(ctx context.Context, k string) (int64, error) {
-	// TODO implement me
-	panic("")
+func (db DB) SelectCounter(ctx context.Context, k string) (int64, error) {
+	var c int64
+	row := db.pool.QueryRow(
+		ctx,
+		`SELECT counter FROM counters WHERE id = $1`,
+		k,
+	)
+	if err := row.Scan(&c); err != nil {
+		return 0, fmt.Errorf("failed to select counter: %w", err)
+	}
+	return c, nil
 }
 
-func (d DB) GetCounters(ctx context.Context) map[string]int64 {
-	// TODO implement me
-	panic("")
+func (db DB) GetCounters(ctx context.Context) map[string]int64 {
+	rows, err := db.pool.Query(ctx, "SELECT id, counter FROM counters")
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	counters := make(map[string]int64)
+
+	for rows.Next() {
+		var id string
+		var counter int64
+		if err := rows.Scan(&id, &counter); err != nil {
+			return nil
+		}
+		counters[id] = counter
+	}
+
+	return counters
 }
 
-func (d DB) GetGauges(ctx context.Context) map[string]float64 {
-	// TODO implement me
-	panic("")
+func (db DB) GetGauges(ctx context.Context) map[string]float64 {
+	rows, err := db.pool.Query(ctx, "SELECT id, gauge FROM gauges")
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	gauges := make(map[string]float64)
+
+	for rows.Next() {
+		var id string
+		var gauge float64
+		if err := rows.Scan(&id, &gauge); err != nil {
+			return nil
+		}
+		gauges[id] = gauge
+	}
+
+	return gauges
 }
 
-func (d DB) Ping(ctx context.Context) error {
-	if err := d.pool.Ping(ctx); err != nil {
+func (db DB) Ping(ctx context.Context) error {
+	if err := db.pool.Ping(ctx); err != nil {
 		return fmt.Errorf("cannot ping db: %w", err)
 	}
 	return nil

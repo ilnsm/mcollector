@@ -1,7 +1,7 @@
 BEGIN;
 
-DROP TABLE gauge;
+DROP TABLE gauges;
 
-DROP TABLE counter;
+DROP TABLE counters;
 
 COMMIT;
