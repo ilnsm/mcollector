@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/ilnsm/mcollector/internal/models"
 	"github.com/ilnsm/mcollector/internal/server/middleware/compress"
 	"github.com/jackc/pgx/v5"
 
@@ -23,6 +24,7 @@ type Storage interface {
 	SelectCounter(ctx context.Context, k string) (int64, error)
 	GetCounters(ctx context.Context) map[string]int64
 	GetGauges(ctx context.Context) map[string]float64
+	InsertBatch(ctx context.Context, metrics []models.Metrics) error
 	Ping(ctx context.Context) error
 }
 
@@ -61,6 +63,8 @@ func (a *API) registerAPI(ctx context.Context) chi.Router {
 		r.Post("/", UpdateTheMetricWithJSON(ctx, a))
 		r.Post("/{mType}/{mName}/{mValue}", UpdateTheMetric(ctx, a))
 	})
+
+	r.Post("/updates/", UpdateSliceOfMetrics(ctx, a))
 
 	r.Get("/", ListAllMetrics(ctx, a))
 

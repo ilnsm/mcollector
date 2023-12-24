@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ilnsm/mcollector/internal/models"
 	"github.com/ilnsm/mcollector/internal/server/config"
 	"github.com/ilnsm/mcollector/internal/storage/file"
 	memorystorage "github.com/ilnsm/mcollector/internal/storage/memory"
@@ -17,6 +18,7 @@ type Storage interface {
 	SelectCounter(ctx context.Context, k string) (int64, error)
 	GetCounters(ctx context.Context) map[string]int64
 	GetGauges(ctx context.Context) map[string]float64
+	InsertBatch(ctx context.Context, metrics []models.Metrics) error
 	Ping(ctx context.Context) error
 }
 

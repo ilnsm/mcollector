@@ -15,7 +15,7 @@ import (
 	"github.com/ilnsm/mcollector/internal/models"
 )
 
-const filePermission = 0600
+const filePermission = 0644
 
 type Storage interface {
 	InsertGauge(ctx context.Context, k string, v float64) error
@@ -127,6 +127,22 @@ func (f *FileStorage) GetCounters(ctx context.Context) map[string]int64 {
 func (f *FileStorage) GetGauges(ctx context.Context) map[string]float64 {
 	c := f.m.GetGauges(ctx)
 	return c
+}
+
+func (f *FileStorage) InsertBatch(ctx context.Context, metrics []models.Metrics) error {
+	for _, m := range metrics {
+		if m.MType == "counter" {
+			if err := f.InsertCounter(ctx, m.ID, *m.Delta); err != nil {
+				return fmt.Errorf("cannot save counter %s to the file: %w", m.ID, err)
+			}
+		}
+		if m.MType == "gauge" {
+			if err := f.InsertGauge(ctx, m.ID, *m.Value); err != nil {
+				return fmt.Errorf("cannot save gauge %s to the file: %w", m.ID, err)
+			}
+		}
+	}
+	return nil
 }
 
 func (f *FileStorage) Ping(ctx context.Context) error {

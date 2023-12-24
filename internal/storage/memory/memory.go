@@ -3,6 +3,8 @@ package memorystorage
 import (
 	"context"
 	"errors"
+
+	"github.com/ilnsm/mcollector/internal/models"
 )
 
 type MemStorage struct {
@@ -15,36 +17,47 @@ func New() *MemStorage {
 	return &s
 }
 
-func (m *MemStorage) InsertGauge(ctx context.Context, k string, v float64) error {
-	m.gauge[k] = v
+func (mem *MemStorage) InsertGauge(ctx context.Context, k string, v float64) error {
+	mem.gauge[k] = v
 	return nil
 }
-func (m *MemStorage) InsertCounter(ctx context.Context, k string, v int64) error {
-	m.counter[k] += v
+func (mem *MemStorage) InsertCounter(ctx context.Context, k string, v int64) error {
+	mem.counter[k] += v
 	return nil
 }
 
-func (m *MemStorage) SelectGauge(ctx context.Context, k string) (float64, error) {
-	if v, ok := m.gauge[k]; ok {
+func (mem *MemStorage) SelectGauge(ctx context.Context, k string) (float64, error) {
+	if v, ok := mem.gauge[k]; ok {
 		return v, nil
 	}
 	return 0, errors.New("gauge does not exist")
 }
 
-func (m *MemStorage) SelectCounter(ctx context.Context, k string) (int64, error) {
-	if v, ok := m.counter[k]; ok {
+func (mem *MemStorage) SelectCounter(ctx context.Context, k string) (int64, error) {
+	if v, ok := mem.counter[k]; ok {
 		return v, nil
 	}
 	return 0, errors.New("counter does not exist")
 }
 
-func (m *MemStorage) GetCounters(ctx context.Context) map[string]int64 {
-	return m.counter
+func (mem *MemStorage) GetCounters(ctx context.Context) map[string]int64 {
+	return mem.counter
 }
-func (m *MemStorage) GetGauges(ctx context.Context) map[string]float64 {
-	return m.gauge
+func (mem *MemStorage) GetGauges(ctx context.Context) map[string]float64 {
+	return mem.gauge
 }
 
-func (m *MemStorage) Ping(ctx context.Context) error {
+func (mem *MemStorage) InsertBatch(ctx context.Context, metrics []models.Metrics) error {
+	for _, m := range metrics {
+		if m.MType == "counter" {
+			mem.counter[m.ID] += *m.Delta
+		}
+		if m.MType == "gauge" {
+			mem.gauge[m.ID] = *m.Value
+		}
+	}
+	return nil
+}
+func (mem *MemStorage) Ping(ctx context.Context) error {
 	return nil
 }

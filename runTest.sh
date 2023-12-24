@@ -81,3 +81,28 @@ echo "Run test 9"
             -database-dsn='postgres://mcollector:supersecretpassword@localhost:5432/metrics?sslmode=disable' \
             -server-port=$SERVER_PORT \
             -source-path=.
+
+echo "Run test 12"
+~/bin/metricstest -test.v -test.run=^TestIteration12$ \
+  -agent-binary-path=cmd/agent/agent \
+  -binary-path=cmd/server/server \
+  -database-dsn='postgres://mcollector:supersecretpassword@localhost:5432/metrics?sslmode=disable' \
+  -server-port=$SERVER_PORT \
+  -source-path=.
+#
+#echo "Run test 13"
+#~/bin/metricstest -test.v -test.run=^TestIteration13$ \
+#  -agent-binary-path=cmd/agent/agent \
+#  -binary-path=cmd/server/server \
+#  -database-dsn='postgres://mcollector:supersecretpassword@localhost:5432/metrics?sslmode=disable' \
+#  -server-port=$SERVER_PORT \
+#  -source-path=.
+#
+#echo "Run test 14"
+#~/bin/metricstest -test.v -test.run=^TestIteration14$ \
+#  -agent-binary-path=cmd/agent/agent \
+#  -binary-path=cmd/server/server \
+#  -database-dsn='postgres://mcollector:supersecretpassword@localhost:5432/metrics?sslmode=disable' \
+#  -key="${TEMP_FILE}" \
+#  -server-port=$SERVER_PORT \
+#  -source-path=.
