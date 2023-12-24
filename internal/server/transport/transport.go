@@ -239,6 +239,22 @@ func GetTheMetricWithJSON(ctx context.Context, a *API) http.HandlerFunc {
 	}
 }
 
+func UpdateSliceOfMetrics(ctx context.Context, a *API) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var metrics []models.Metrics
+		if err := json.NewDecoder(r.Body).Decode(&metrics); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := a.Storage.InsertBatch(ctx, metrics); err != nil {
+			http.Error(w, internalServerError, http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		a.Log.Debug().Msg("sending HTTP 200 response")
+	}
+}
+
 func PingDB(ctx context.Context, a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := a.Storage.Ping(ctx); err != nil {

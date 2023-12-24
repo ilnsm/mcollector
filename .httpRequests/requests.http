@@ -93,3 +93,11 @@ Accept-Encoding: gzip
 {"id": "gaugeNameJSON",
   "type": "gauge",
   "value": 38.988}
+
+###
+POST http://{{default_url}}/updates/
+Content-Type: application/json
+Accept-Encoding: gzip
+
+[{"id":"gaugeNameBatchJSON","type":"gauge","value":138.988},
+  {"id":"counterNameBatchJSON","type":"counter","delta":113}]
