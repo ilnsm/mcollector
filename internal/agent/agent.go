@@ -18,7 +18,7 @@ import (
 )
 
 const defaultSchema = "http://"
-const updatePath = "/update"
+const updatePath = "/updates/"
 const gauge = "gauge"
 const counter = "counter"
 const cannotCreateRequest = "cannot create request"
@@ -35,7 +35,7 @@ func Run() error {
 	m := runtime.MemStats{}
 	metrics := make(map[string]string)
 	client := &http.Client{}
-	var mModel models.Metrics
+	var metricSlice []models.Metrics
 
 	mTicker := time.NewTicker(cfg.PollInterval)
 	defer mTicker.Stop()
@@ -53,46 +53,32 @@ func Run() error {
 			pollCounter++
 		case <-reqTicker.C:
 			for name, value := range metrics {
-				mModel.ID = name
-				mModel.MType = gauge
 				v, err := strconv.ParseFloat(value, 64)
 				if err != nil {
 					log.Error().Msg("error convert string to float")
 					break
 				}
-				mModel.Value = &v
-
-				err = doRequestWithJSON(cfg.Endpoint, mModel, client)
-				if err != nil {
-					log.Error().Err(err).Msg(cannotCreateRequest)
-				}
+				metricSlice = append(metricSlice, models.Metrics{MType: gauge, ID: name, Value: &v})
 			}
-
-			mModel.ID = "PollCount"
-			mModel.MType = counter
-			mModel.Delta = &pollCounter
-			err = doRequestWithJSON(cfg.Endpoint, mModel, client)
-			if err != nil {
-				log.Error().Err(err).Msg(cannotCreateRequest)
-			}
-
 			randomFloat := rand.Float64()
-			mModel.ID = "RandomValue"
-			mModel.MType = gauge
-			mModel.Value = &randomFloat
-			err = doRequestWithJSON(cfg.Endpoint, mModel, client)
+			metricSlice = append(metricSlice, models.Metrics{MType: gauge, ID: "RandomValue", Value: &randomFloat},
+				models.Metrics{MType: counter, ID: "PollCount", Delta: &pollCounter})
+
+			err = doRequestWithJSON(cfg.Endpoint, metricSlice, client)
 			if err != nil {
 				log.Error().Err(err).Msg(cannotCreateRequest)
 			}
+			fmt.Println(metricSlice)
+			metricSlice = nil
 			pollCounter = 0
 		}
 	}
 }
 
-func doRequestWithJSON(endpoint string, m models.Metrics, client *http.Client) error {
+func doRequestWithJSON(endpoint string, metrics []models.Metrics, client *http.Client) error {
 	const wrapError = "do request error"
 
-	jsonData, err := json.Marshal(m)
+	jsonData, err := json.Marshal(metrics)
 	if err != nil {
 		return fmt.Errorf("error marshaling JSON: %w", err)
 	}

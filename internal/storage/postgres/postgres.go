@@ -95,7 +95,7 @@ func (db DB) InsertGauge(ctx context.Context, k string, v float64) error {
 	}
 	rowsAffectedCount := tag.RowsAffected()
 	if rowsAffectedCount != 1 {
-		return fmt.Errorf("expected one row to be affected, actually affected %d", rowsAffectedCount)
+		return fmt.Errorf("insertGauge expected one row to be affected, actually affected %d", rowsAffectedCount)
 	}
 	return nil
 }
@@ -112,7 +112,7 @@ func (db DB) InsertCounter(ctx context.Context, k string, v int64) error {
 	}
 	rowsAffectedCount := tag.RowsAffected()
 	if rowsAffectedCount != 1 {
-		return fmt.Errorf("expected one row to be affected, actually affected %d", rowsAffectedCount)
+		return fmt.Errorf("insertCounter expected one row to be affected, actually affected %d", rowsAffectedCount)
 	}
 	return nil
 }
@@ -192,12 +192,11 @@ func (db DB) InsertBatch(ctx context.Context, metrics []models.Metrics) error {
 	}
 	defer func() {
 		if err := begin.Rollback(ctx); err != nil {
-			log.Error().Msgf("cannot proceed transaction, rollback: %w", err)
+			log.Error().Err(err).Msgf("cannot proceed transaction, rollback")
 		}
 	}()
 
 	for _, m := range metrics {
-
 		if m.MType == "counter" {
 			tag, err := begin.Exec(ctx,
 				`INSERT INTO counters (id, counter) VALUES ($1, $2)
@@ -207,7 +206,7 @@ func (db DB) InsertBatch(ctx context.Context, metrics []models.Metrics) error {
 				return fmt.Errorf("failed to insert counter from batch: %w", err)
 			}
 			if rowsAffectedCount := tag.RowsAffected(); rowsAffectedCount != 1 {
-				return fmt.Errorf("expected one row to be affected, actually affected %d", rowsAffectedCount)
+				log.Error().Msgf("insertBatch expected one row to be affected, actually affected %d", rowsAffectedCount)
 			}
 		}
 
@@ -220,7 +219,7 @@ func (db DB) InsertBatch(ctx context.Context, metrics []models.Metrics) error {
 				return fmt.Errorf("failed to insert gauge from batch: %w", err)
 			}
 			if rowsAffectedCount := tag.RowsAffected(); rowsAffectedCount != 1 {
-				return fmt.Errorf("expected one row to be affected, actually affected %d", rowsAffectedCount)
+				log.Error().Msgf("insertBatch expected one row to be affected, actually affected %d", rowsAffectedCount)
 			}
 		}
 	}

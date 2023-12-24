@@ -160,7 +160,7 @@ func UpdateTheMetricWithJSON(ctx context.Context, a *API) http.HandlerFunc {
 			}
 
 			w.WriteHeader(http.StatusOK)
-			a.Log.Debug().Msg("sending HTTP 200 response, json handler")
+			a.Log.Debug().Msg("UpdateTheMetricWithJSON: sending HTTP 200 response")
 
 		case models.Counter:
 			err := a.Storage.InsertCounter(ctx, m.ID, *m.Delta)
@@ -181,7 +181,7 @@ func UpdateTheMetricWithJSON(ctx context.Context, a *API) http.HandlerFunc {
 			}
 
 			w.WriteHeader(http.StatusOK)
-			a.Log.Debug().Msg("sending HTTP 200 response, json handler")
+			a.Log.Debug().Msg("UpdateTheMetricWithJSON: sending HTTP 200 response")
 		default:
 			http.Error(w, "Bad request", http.StatusBadRequest)
 		}
@@ -213,7 +213,7 @@ func GetTheMetricWithJSON(ctx context.Context, a *API) http.HandlerFunc {
 			}
 
 			w.WriteHeader(http.StatusOK)
-			a.Log.Debug().Msg("sending HTTP 200 response")
+			a.Log.Debug().Msg("GetTheMetricWithJSON: sending HTTP 200 response")
 
 		case models.Counter:
 			delta, err := a.Storage.SelectCounter(ctx, m.ID)
@@ -232,7 +232,7 @@ func GetTheMetricWithJSON(ctx context.Context, a *API) http.HandlerFunc {
 			}
 
 			w.WriteHeader(http.StatusOK)
-			a.Log.Debug().Msg("sending HTTP 200 response")
+			a.Log.Debug().Msg("GetTheMetricWithJSON: sending HTTP 200 response")
 		default:
 			http.Error(w, "Bad request", http.StatusBadRequest)
 		}
@@ -251,7 +251,7 @@ func UpdateSliceOfMetrics(ctx context.Context, a *API) http.HandlerFunc {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		a.Log.Debug().Msg("sending HTTP 200 response")
+		a.Log.Debug().Msg("UpdateSliceOfMetrics: sending HTTP 200 response")
 	}
 }
 
