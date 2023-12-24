@@ -190,11 +190,6 @@ func (db DB) InsertBatch(ctx context.Context, metrics []models.Metrics) error {
 	if err != nil {
 		return fmt.Errorf("failed to open transaction: %w", err)
 	}
-	defer func() {
-		if err := begin.Rollback(ctx); err != nil {
-			log.Error().Err(err).Msgf("cannot proceed transaction, rollback")
-		}
-	}()
 
 	for _, m := range metrics {
 		if m.MType == "counter" {
