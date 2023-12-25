@@ -55,3 +55,7 @@ _golangci-lint-rm-unformatted-report: _golangci-lint-format-report
 .PHONY: golangci-lint-clean
 golangci-lint-clean:
 	sudo rm -rf ./golangci-lint matted.json > ./golangci-lint/report.json
+
+.PHONY:
+truncate:
+	@docker exec postgres psql -U mcollector -d metrics -c 'truncate table counters, gauges;'

@@ -28,6 +28,7 @@ type Storage interface {
 
 const connPGError = "cannot connect to postgres, will retry in"
 const retryAttempts = 3
+const repeatFactor = 2
 
 type DB struct {
 	pool *pgxpool.Pool
@@ -100,13 +101,10 @@ requestLoop:
 			k, v,
 		)
 		if err != nil {
-			if !isConnExp(err) {
-				return fmt.Errorf("failed to store gauge: %w", err)
-			}
 			if attempt < retryAttempts {
 				log.Error().Err(err).Msgf("%s %v", connPGError, sleepTime)
 				time.Sleep(sleepTime)
-				sleepTime += 2 * time.Second
+				sleepTime += repeatFactor * time.Second
 				attempt++
 				continue requestLoop
 			}
@@ -135,13 +133,10 @@ requestLoop:
 			k, v,
 		)
 		if err != nil {
-			if !isConnExp(err) {
-				return fmt.Errorf("failed to store counter: %w", err)
-			}
 			if attempt < retryAttempts {
 				log.Error().Err(err).Msgf("%s %v", connPGError, sleepTime)
 				time.Sleep(sleepTime)
-				sleepTime += 2 * time.Second
+				sleepTime += repeatFactor * time.Second
 				attempt++
 				continue requestLoop
 			}
@@ -226,41 +221,57 @@ func (db DB) GetGauges(ctx context.Context) map[string]float64 {
 }
 
 func (db DB) InsertBatch(ctx context.Context, metrics []models.Metrics) error {
-	begin, err := db.pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to open transaction: %w", err)
-	}
+	sleepTime := 1 * time.Second
+	attempt := 0
 
-	for _, m := range metrics {
-		if m.MType == "counter" {
-			tag, err := begin.Exec(ctx,
-				`INSERT INTO counters (id, counter) VALUES ($1, $2)
+requestLoop:
+	for {
+		begin, err := db.pool.Begin(ctx)
+		if err != nil {
+			if !isConnExp(err) {
+				return fmt.Errorf("failed to open transaction: %w", err)
+			}
+			if attempt < retryAttempts {
+				log.Error().Err(err).Msgf("%s %v", connPGError, sleepTime)
+				time.Sleep(sleepTime)
+				sleepTime += repeatFactor * time.Second
+				attempt++
+				continue requestLoop
+			}
+			break requestLoop
+		}
+
+		for _, m := range metrics {
+			if m.MType == "counter" {
+				tag, err := begin.Exec(ctx,
+					`INSERT INTO counters (id, counter) VALUES ($1, $2)
             		 ON CONFLICT (id) DO UPDATE SET counter = counters.counter + EXCLUDED.counter`,
-				m.ID, *m.Delta)
-			if err != nil {
-				return fmt.Errorf("failed to insert counter from batch: %w", err)
+					m.ID, *m.Delta)
+				if err != nil {
+					return fmt.Errorf("failed to insert counter from batch: %w", err)
+				}
+				if rowsAffectedCount := tag.RowsAffected(); rowsAffectedCount != 1 {
+					log.Error().Msgf("insertBatch expected one row to be affected, actually affected %d", rowsAffectedCount)
+				}
 			}
-			if rowsAffectedCount := tag.RowsAffected(); rowsAffectedCount != 1 {
-				log.Error().Msgf("insertBatch expected one row to be affected, actually affected %d", rowsAffectedCount)
-			}
-		}
 
-		if m.MType == "gauge" {
-			tag, err := begin.Exec(ctx,
-				`INSERT INTO gauges (id, gauge) VALUES ($1, $2)
+			if m.MType == "gauge" {
+				tag, err := begin.Exec(ctx,
+					`INSERT INTO gauges (id, gauge) VALUES ($1, $2)
 			 ON CONFLICT (id) DO UPDATE SET gauge = EXCLUDED.gauge`,
-				m.ID, *m.Value)
-			if err != nil {
-				return fmt.Errorf("failed to insert gauge from batch: %w", err)
-			}
-			if rowsAffectedCount := tag.RowsAffected(); rowsAffectedCount != 1 {
-				log.Error().Msgf("insertBatch expected one row to be affected, actually affected %d", rowsAffectedCount)
+					m.ID, *m.Value)
+				if err != nil {
+					return fmt.Errorf("failed to insert gauge from batch: %w", err)
+				}
+				if rowsAffectedCount := tag.RowsAffected(); rowsAffectedCount != 1 {
+					log.Error().Msgf("insertBatch expected one row to be affected, actually affected %d", rowsAffectedCount)
+				}
 			}
 		}
-	}
-
-	if err := begin.Commit(ctx); err != nil {
-		return fmt.Errorf("cannot commit transaction: %w", err)
+		if err := begin.Commit(ctx); err != nil {
+			return fmt.Errorf("cannot commit transaction: %w", err)
+		}
+		break requestLoop
 	}
 	return nil
 }
