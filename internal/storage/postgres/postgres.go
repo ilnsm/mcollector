@@ -5,6 +5,7 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -24,6 +25,9 @@ type Storage interface {
 	InsertBatch(ctx context.Context, metrics []models.Metrics) error
 	Ping(ctx context.Context) error
 }
+
+const connPGError = "cannot connect to postgres, will retry in"
+const retryAttempts = 3
 
 type DB struct {
 	pool *pgxpool.Pool
@@ -84,35 +88,65 @@ func runMigrations(dsn string) error {
 }
 
 func (db DB) InsertGauge(ctx context.Context, k string, v float64) error {
-	tag, err := db.pool.Exec(
-		ctx,
-		`INSERT INTO gauges (id, gauge) VALUES ($1, $2)
+	attempt := 0
+	sleepTime := 1 * time.Second
+requestLoop:
+	for {
+		tag, err := db.pool.Exec(
+			ctx,
+			`INSERT INTO gauges (id, gauge) VALUES ($1, $2)
 			 ON CONFLICT (id) DO UPDATE SET gauge = EXCLUDED.gauge`,
-		k, v,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to store gauge: %w", err)
-	}
-	rowsAffectedCount := tag.RowsAffected()
-	if rowsAffectedCount != 1 {
-		return fmt.Errorf("insertGauge expected one row to be affected, actually affected %d", rowsAffectedCount)
+			k, v,
+		)
+		if err != nil {
+			if !isConnExp(err) {
+				return fmt.Errorf("failed to store gauge: %w", err)
+			}
+			if attempt > retryAttempts {
+				break requestLoop
+			}
+			log.Error().Err(err).Msgf("%s %v", connPGError, sleepTime)
+			time.Sleep(sleepTime)
+			attempt++
+			sleepTime += 2 * time.Second
+			continue requestLoop
+		}
+		rowsAffectedCount := tag.RowsAffected()
+		if rowsAffectedCount != 1 {
+			return fmt.Errorf("insertGauge expected one row to be affected, actually affected %d", rowsAffectedCount)
+		}
 	}
 	return nil
 }
 
 func (db DB) InsertCounter(ctx context.Context, k string, v int64) error {
-	tag, err := db.pool.Exec(
-		ctx,
-		`INSERT INTO counters (id, counter) VALUES ($1, $2)
-             ON CONFLICT (id) DO UPDATE SET counter = counters.counter + EXCLUDED.counter`,
-		k, v,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to store counter: %w", err)
-	}
-	rowsAffectedCount := tag.RowsAffected()
-	if rowsAffectedCount != 1 {
-		return fmt.Errorf("insertCounter expected one row to be affected, actually affected %d", rowsAffectedCount)
+	attempt := 0
+	sleepTime := 1 * time.Second
+requestLoop:
+	for {
+		tag, err := db.pool.Exec(
+			ctx,
+			`INSERT INTO counters (id, counter) VALUES ($1, $2)
+			 ON CONFLICT (id) DO UPDATE SET counter = counters.counter + EXCLUDED.counter`,
+			k, v,
+		)
+		if err != nil {
+			if !isConnExp(err) {
+				return fmt.Errorf("failed to store gauge: %w", err)
+			}
+			if attempt > retryAttempts {
+				break requestLoop
+			}
+			log.Error().Err(err).Msgf("%s %v", connPGError, sleepTime)
+			time.Sleep(sleepTime)
+			attempt++
+			sleepTime += 2 * time.Second
+			continue requestLoop
+		}
+		rowsAffectedCount := tag.RowsAffected()
+		if rowsAffectedCount != 1 {
+			return fmt.Errorf("insertCounter expected one row to be affected, actually affected %d", rowsAffectedCount)
+		}
 	}
 	return nil
 }
