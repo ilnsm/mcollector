@@ -25,6 +25,7 @@ const gauge = "gauge"
 const counter = "counter"
 const cannotCreateRequest = "cannot create request"
 const retryAttempts = 3
+const repeatFactor = 2
 
 var opError *net.OpError
 
@@ -79,7 +80,7 @@ func Run() error {
 						log.Error().Err(err).Msgf("%s, will retry in %v", cannotCreateRequest, sleepTime)
 						time.Sleep(sleepTime)
 						attempt++
-						sleepTime += 2 * time.Second
+						sleepTime += repeatFactor * time.Second
 						continue
 					}
 					log.Error().Err(err).Msgf("cannot do request, failed %d times", retryAttempts)
