@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
+	"net"
 	"net/http"
 	"runtime"
 	"strconv"
@@ -22,6 +24,9 @@ const updatePath = "/updates/"
 const gauge = "gauge"
 const counter = "counter"
 const cannotCreateRequest = "cannot create request"
+const retryAttempts = 3
+
+var opError *net.OpError
 
 func Run() error {
 	cfg, err := config.New()
@@ -64,11 +69,23 @@ func Run() error {
 			metricSlice = append(metricSlice, models.Metrics{MType: gauge, ID: "RandomValue", Value: &randomFloat},
 				models.Metrics{MType: counter, ID: "PollCount", Delta: &pollCounter})
 
-			err = doRequestWithJSON(cfg.Endpoint, metricSlice, client)
-			if err != nil {
-				log.Error().Err(err).Msg(cannotCreateRequest)
+			attempt := 0
+			sleepTime := 1 * time.Second
+		requestLoop:
+			for {
+				err = doRequestWithJSON(cfg.Endpoint, metricSlice, client)
+				if err != nil {
+					if errors.As(err, &opError) && attempt < retryAttempts {
+						log.Error().Err(err).Msgf("%s, will retry in %v", cannotCreateRequest, sleepTime)
+						time.Sleep(sleepTime)
+						attempt++
+						sleepTime += 2 * time.Second
+						continue
+					}
+					log.Error().Err(err).Msgf("cannot do request, failed %d times", retryAttempts)
+				}
+				break requestLoop
 			}
-			fmt.Println(metricSlice)
 			metricSlice = nil
 			pollCounter = 0
 		}
