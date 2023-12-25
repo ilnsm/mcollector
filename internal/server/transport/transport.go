@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/ilnsm/mcollector/internal/models"
@@ -36,6 +37,8 @@ const htmlTemplate = `
 const contentType = "Content-Type"
 const applicationJSON = "application/json"
 const internalServerError = "Internal server error"
+const connPGError = "cannot connect to postgres, will retry in"
+const retryAttempts = 3
 
 func UpdateTheMetric(ctx context.Context, a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -47,9 +50,24 @@ func UpdateTheMetric(ctx context.Context, a *API) http.HandlerFunc {
 				if err != nil {
 					http.Error(w, "Bad request to update gauge", http.StatusBadRequest)
 				}
-				err = a.Storage.InsertGauge(ctx, mName, v)
-				if err != nil {
-					http.Error(w, "Not Found", http.StatusBadRequest)
+
+				attempt := 0
+				sleepTime := 1 * time.Second
+			requestLoopGauge:
+				for {
+					if err = a.Storage.InsertGauge(ctx, mName, v); err != nil {
+						if isConnExp(err) {
+							if isConnExp(err) && attempt < retryAttempts {
+								log.Error().Err(err).Msgf("%s %v", connPGError, sleepTime)
+								time.Sleep(sleepTime)
+								attempt++
+								sleepTime += 2 * time.Second
+								continue
+							}
+							http.Error(w, "Not Found", http.StatusBadRequest)
+							break requestLoopGauge
+						}
+					}
 				}
 
 				w.WriteHeader(http.StatusOK)
@@ -61,10 +79,23 @@ func UpdateTheMetric(ctx context.Context, a *API) http.HandlerFunc {
 				if err != nil {
 					http.Error(w, "Bad request to update counter", http.StatusBadRequest)
 				}
-				err = a.Storage.InsertCounter(ctx, mName, v)
-
-				if err != nil {
-					http.Error(w, "Not Found", http.StatusBadRequest)
+				attempt := 0
+				sleepTime := 1 * time.Second
+			requestLoopCounter:
+				for {
+					if err = a.Storage.InsertCounter(ctx, mName, v); err != nil {
+						if isConnExp(err) {
+							if isConnExp(err) && attempt < retryAttempts {
+								log.Error().Err(err).Msgf("%s %v", connPGError, sleepTime)
+								time.Sleep(sleepTime)
+								attempt++
+								sleepTime += 2 * time.Second
+								continue
+							}
+							http.Error(w, "Not Found", http.StatusBadRequest)
+							break requestLoopCounter
+						}
+					}
 				}
 
 				w.WriteHeader(http.StatusOK)
