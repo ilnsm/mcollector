@@ -89,14 +89,14 @@ echo "Run test 12"
   -database-dsn='postgres://mcollector:supersecretpassword@localhost:5432/metrics?sslmode=disable' \
   -server-port=$SERVER_PORT \
   -source-path=.
-#
-#echo "Run test 13"
-#~/bin/metricstest -test.v -test.run=^TestIteration13$ \
-#  -agent-binary-path=cmd/agent/agent \
-#  -binary-path=cmd/server/server \
-#  -database-dsn='postgres://mcollector:supersecretpassword@localhost:5432/metrics?sslmode=disable' \
-#  -server-port=$SERVER_PORT \
-#  -source-path=.
+
+echo "Run test 13"
+~/bin/metricstest -test.v -test.run=^TestIteration13$ \
+  -agent-binary-path=cmd/agent/agent \
+  -binary-path=cmd/server/server \
+  -database-dsn='postgres://mcollector:supersecretpassword@localhost:5432/metrics?sslmode=disable' \
+  -server-port=$SERVER_PORT \
+  -source-path=.
 #
 #echo "Run test 14"
 #~/bin/metricstest -test.v -test.run=^TestIteration14$ \
