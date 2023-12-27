@@ -40,11 +40,11 @@ func (mem *MemStorage) SelectCounter(ctx context.Context, k string) (int64, erro
 	return 0, errors.New("counter does not exist")
 }
 
-func (mem *MemStorage) GetCounters(ctx context.Context) map[string]int64 {
-	return mem.counter
+func (mem *MemStorage) GetCounters(ctx context.Context) (map[string]int64, error) {
+	return mem.counter, nil
 }
-func (mem *MemStorage) GetGauges(ctx context.Context) map[string]float64 {
-	return mem.gauge
+func (mem *MemStorage) GetGauges(ctx context.Context) (map[string]float64, error) {
+	return mem.gauge, nil
 }
 
 func (mem *MemStorage) InsertBatch(ctx context.Context, metrics []models.Metrics) error {

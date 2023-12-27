@@ -22,8 +22,8 @@ type Storage interface {
 	InsertCounter(ctx context.Context, k string, v int64) error
 	SelectGauge(ctx context.Context, k string) (float64, error)
 	SelectCounter(ctx context.Context, k string) (int64, error)
-	GetCounters(ctx context.Context) map[string]int64
-	GetGauges(ctx context.Context) map[string]float64
+	GetCounters(ctx context.Context) (map[string]int64, error)
+	GetGauges(ctx context.Context) (map[string]float64, error)
 	InsertBatch(ctx context.Context, metrics []models.Metrics) error
 	Ping(ctx context.Context) error
 }

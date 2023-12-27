@@ -15,17 +15,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type Storage interface {
-	InsertGauge(ctx context.Context, k string, v float64) error
-	InsertCounter(ctx context.Context, k string, v int64) error
-	SelectGauge(ctx context.Context, k string) (float64, error)
-	SelectCounter(ctx context.Context, k string) (int64, error)
-	GetCounters(ctx context.Context) map[string]int64
-	GetGauges(ctx context.Context) map[string]float64
-	InsertBatch(ctx context.Context, metrics []models.Metrics) error
-	Ping(ctx context.Context) error
-}
-
 const connPGError = "cannot connect to postgres, will retry in"
 const retryAttempts = 3
 const repeatFactor = 2
@@ -178,10 +167,10 @@ func (db DB) SelectCounter(ctx context.Context, k string) (int64, error) {
 	return c, nil
 }
 
-func (db DB) GetCounters(ctx context.Context) map[string]int64 {
+func (db DB) GetCounters(ctx context.Context) (map[string]int64, error) {
 	rows, err := db.pool.Query(ctx, "SELECT id, counter FROM counters")
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("postgres failed to select counters: %w", err)
 	}
 	defer rows.Close()
 
@@ -191,18 +180,18 @@ func (db DB) GetCounters(ctx context.Context) map[string]int64 {
 		var id string
 		var counter int64
 		if err := rows.Scan(&id, &counter); err != nil {
-			return nil
+			return nil, fmt.Errorf("postgres failed to select counter: %w", err)
 		}
 		counters[id] = counter
 	}
 
-	return counters
+	return counters, nil
 }
 
-func (db DB) GetGauges(ctx context.Context) map[string]float64 {
+func (db DB) GetGauges(ctx context.Context) (map[string]float64, error) {
 	rows, err := db.pool.Query(ctx, "SELECT id, gauge FROM gauges")
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("postgres failed to select gauges: %w", err)
 	}
 	defer rows.Close()
 
@@ -212,12 +201,12 @@ func (db DB) GetGauges(ctx context.Context) map[string]float64 {
 		var id string
 		var gauge float64
 		if err := rows.Scan(&id, &gauge); err != nil {
-			return nil
+			return nil, fmt.Errorf("postgres failed to select gauge: %w", err)
 		}
 		gauges[id] = gauge
 	}
 
-	return gauges
+	return gauges, nil
 }
 
 func (db DB) InsertBatch(ctx context.Context, metrics []models.Metrics) error {

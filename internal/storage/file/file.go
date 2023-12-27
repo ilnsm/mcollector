@@ -17,16 +17,6 @@ import (
 
 const filePermission = 0644
 
-type Storage interface {
-	InsertGauge(ctx context.Context, k string, v float64) error
-	InsertCounter(ctx context.Context, k string, v int64) error
-	SelectGauge(ctx context.Context, k string) (float64, error)
-	SelectCounter(ctx context.Context, k string) (int64, error)
-	GetCounters(ctx context.Context) map[string]int64
-	GetGauges(ctx context.Context) map[string]float64
-	Ping(ctx context.Context) error
-}
-
 type FileStorage struct {
 	m               memorystorage.MemStorage
 	FileStoragePath string
@@ -119,14 +109,20 @@ func (f *FileStorage) SelectCounter(ctx context.Context, k string) (int64, error
 	return v, nil
 }
 
-func (f *FileStorage) GetCounters(ctx context.Context) map[string]int64 {
-	c := f.m.GetCounters(ctx)
-	return c
+func (f *FileStorage) GetCounters(ctx context.Context) (map[string]int64, error) {
+	c, err := f.m.GetCounters(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("filestorage get counters: %w", err)
+	}
+	return c, nil
 }
 
-func (f *FileStorage) GetGauges(ctx context.Context) map[string]float64 {
-	c := f.m.GetGauges(ctx)
-	return c
+func (f *FileStorage) GetGauges(ctx context.Context) (map[string]float64, error) {
+	c, err := f.m.GetGauges(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("filestorage get gauges: %w", err)
+	}
+	return c, nil
 }
 
 func (f *FileStorage) InsertBatch(ctx context.Context, metrics []models.Metrics) error {
@@ -226,13 +222,19 @@ func (f *FileStorage) flushMetrics(ctx context.Context) error {
 		}
 	}()
 
-	counters := f.m.GetCounters(ctx)
+	counters, err := f.m.GetCounters(ctx)
+	if err != nil {
+		return fmt.Errorf("filestorage flusmetrics: %w", err)
+	}
 	log.Debug().Msg("try to flush counters")
 	if err = flushCounters(p, counters); err != nil {
 		return fmt.Errorf("%s: %w", wrapError, err)
 	}
 
-	gauges := f.m.GetGauges(ctx)
+	gauges, err := f.m.GetGauges(ctx)
+	if err != nil {
+		return fmt.Errorf("filestorage flusmetrics: %w", err)
+	}
 	log.Debug().Msg("try to flush gauges")
 	if err = flushGauges(p, gauges); err != nil {
 		return fmt.Errorf("%s: %w", wrapError, err)

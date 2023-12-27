@@ -117,7 +117,17 @@ func ListAllMetrics(ctx context.Context, a *API) http.HandlerFunc {
 			return
 		}
 
-		c, g := a.Storage.GetCounters(ctx), a.Storage.GetGauges(ctx)
+		c, err := a.Storage.GetCounters(ctx)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		g, err := a.Storage.GetGauges(ctx)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		var data = make(map[string]string)
 		for i, v := range c {
 			data[i] = strconv.Itoa(int(v))
