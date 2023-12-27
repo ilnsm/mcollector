@@ -29,7 +29,7 @@ func main() {
 
 	api := transport.New(cfg, s, logger)
 
-	if err := api.Run(ctx); err != nil {
+	if err := api.Run(); err != nil {
 		logger.Fatal().Err(err).Send()
 	}
 }

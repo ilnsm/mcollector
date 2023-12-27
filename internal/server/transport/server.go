@@ -7,8 +7,6 @@ import (
 
 	"github.com/ilnsm/mcollector/internal/models"
 	"github.com/ilnsm/mcollector/internal/server/middleware/compress"
-	"github.com/jackc/pgx/v5"
-
 	"github.com/rs/zerolog"
 
 	"github.com/go-chi/chi/v5"
@@ -30,7 +28,6 @@ type Storage interface {
 
 type API struct {
 	Storage Storage
-	Conn    *pgx.Conn
 	Log     zerolog.Logger
 	Cfg     config.Config
 }
@@ -43,17 +40,17 @@ func New(cfg config.Config, s Storage, l zerolog.Logger) *API {
 	}
 }
 
-func (a *API) Run(ctx context.Context) error {
+func (a *API) Run() error {
 	log.Info().Msgf("Starting server on %s", a.Cfg.Endpoint)
 
-	r := a.registerAPI(ctx)
+	r := a.registerAPI()
 	if err := http.ListenAndServe(a.Cfg.Endpoint, r); err != nil {
 		return fmt.Errorf("run server error: %w", err)
 	}
 	return nil
 }
 
-func (a *API) registerAPI(ctx context.Context) chi.Router {
+func (a *API) registerAPI() chi.Router {
 	r := chi.NewRouter()
 	r.Use(compress.DecompressRequest(a.Log))
 	r.Use(logger.RequestLogger(a.Log))

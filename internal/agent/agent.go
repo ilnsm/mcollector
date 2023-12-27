@@ -27,7 +27,7 @@ const cannotCreateRequest = "cannot create request"
 const retryAttempts = 3
 const repeatFactor = 2
 
-var retryableHTTPStatusCode = errors.New("got retryable status code")
+var errRetryableHTTPStatusCode = errors.New("got retryable status code")
 
 func Run() error {
 	cfg, err := config.New()
@@ -78,7 +78,7 @@ func Run() error {
 				if err == nil {
 					break
 				}
-				if errors.As(err, &opError) || errors.Is(err, retryableHTTPStatusCode) {
+				if errors.As(err, &opError) || errors.Is(err, errRetryableHTTPStatusCode) {
 					log.Error().Err(err).Msgf("%s, will retry in %v", cannotCreateRequest, sleepTime)
 					time.Sleep(sleepTime)
 					attempt++
@@ -133,7 +133,7 @@ func doRequestWithJSON(endpoint string, metrics []models.Metrics, client *http.C
 	}
 
 	if isStatusCoderetryable(r.StatusCode) {
-		return retryableHTTPStatusCode
+		return errRetryableHTTPStatusCode
 	}
 
 	return nil
