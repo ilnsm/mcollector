@@ -255,11 +255,9 @@ func (db DB) Ping(ctx context.Context) error {
 }
 
 func createBatch(metrics []models.Metrics) *pgx.Batch {
-
 	b := &pgx.Batch{}
 	for _, m := range metrics {
 		if m.MType == "counter" {
-
 			sqlStatement := `INSERT INTO counters (id, counter) VALUES ($1, $2)
             		 ON CONFLICT (id) DO UPDATE SET counter = counters.counter + EXCLUDED.counter`
 
@@ -267,7 +265,6 @@ func createBatch(metrics []models.Metrics) *pgx.Batch {
 		}
 
 		if m.MType == "gauge" {
-
 			sqlStatement := `INSERT INTO gauges (id, gauge) VALUES ($1, $2)
 			 ON CONFLICT (id) DO UPDATE SET gauge = EXCLUDED.gauge`
 
