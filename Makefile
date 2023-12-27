@@ -19,7 +19,7 @@ run_agent: agent
 	@./cmd/agent/agent
 
 .PHONY: test
-test: server agent postgres
+test: server agent
 	./runTest.sh |tee test.result
 
 .PHONY: postgres

@@ -27,7 +27,7 @@ const cannotCreateRequest = "cannot create request"
 const retryAttempts = 3
 const repeatFactor = 2
 
-var opError *net.OpError
+var retryableHTTPStatusCode = errors.New("got retryable status code")
 
 func Run() error {
 	cfg, err := config.New()
@@ -72,20 +72,23 @@ func Run() error {
 
 			attempt := 0
 			sleepTime := 1 * time.Second
-		requestLoop:
 			for {
+				var opError *net.OpError
 				err = doRequestWithJSON(cfg.Endpoint, metricSlice, client)
-				if err != nil {
-					if errors.As(err, &opError) && attempt < retryAttempts {
-						log.Error().Err(err).Msgf("%s, will retry in %v", cannotCreateRequest, sleepTime)
-						time.Sleep(sleepTime)
-						attempt++
-						sleepTime += repeatFactor * time.Second
+				if err == nil {
+					break
+				}
+				if errors.As(err, &opError) || errors.Is(err, retryableHTTPStatusCode) {
+					log.Error().Err(err).Msgf("%s, will retry in %v", cannotCreateRequest, sleepTime)
+					time.Sleep(sleepTime)
+					attempt++
+					sleepTime += repeatFactor * time.Second
+					if attempt < retryAttempts {
 						continue
 					}
-					log.Error().Err(err).Msgf("cannot do request, failed %d times", retryAttempts)
+					break
 				}
-				break requestLoop
+				log.Error().Err(err).Msgf("cannot do request, failed %d times", retryAttempts)
 			}
 			metricSlice = nil
 			pollCounter = 0
@@ -124,11 +127,29 @@ func doRequestWithJSON(endpoint string, metrics []models.Metrics, client *http.C
 	if err != nil {
 		return fmt.Errorf("%s: %w", wrapError, err)
 	}
-
 	err = r.Body.Close()
 	if err != nil {
 		return fmt.Errorf("body close %s: %w", wrapError, err)
 	}
 
+	if isStatusCoderetryable(r.StatusCode) {
+		return retryableHTTPStatusCode
+	}
+
 	return nil
+}
+
+func isStatusCoderetryable(code int) bool {
+	switch code {
+	case http.StatusRequestTimeout,
+		http.StatusTooEarly,
+		http.StatusTooManyRequests,
+		http.StatusInternalServerError,
+		http.StatusBadGateway,
+		http.StatusServiceUnavailable,
+		http.StatusGatewayTimeout:
+		return true
+	default:
+		return false
+	}
 }

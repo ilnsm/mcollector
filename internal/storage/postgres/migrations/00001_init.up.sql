@@ -1,13 +1,13 @@
 BEGIN;
 
 CREATE TABLE gauges (
-                       id VARCHAR(200) PRIMARY KEY UNIQUE NOT NULL,
+                       id VARCHAR(200) PRIMARY KEY UNIQUE,
                        gauge DOUBLE PRECISION NOT NULL
 );
 
 CREATE TABLE counters (
-                         id VARCHAR(200) PRIMARY KEY UNIQUE NOT NULL,
-                         counter INT NOT NULL,
+                         id VARCHAR(200) PRIMARY KEY UNIQUE,
+                         counter BIGINT NOT NULL,
                          CONSTRAINT counter_positive_check CHECK (counter::numeric >= 0)
 );
 
