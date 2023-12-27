@@ -60,20 +60,20 @@ func (a *API) registerAPI(ctx context.Context) chi.Router {
 	r.Use(compress.CompressResponse(a.Log))
 
 	r.Route("/update", func(r chi.Router) {
-		r.Post("/", UpdateTheMetricWithJSON(ctx, a))
-		r.Post("/{mType}/{mName}/{mValue}", UpdateTheMetric(ctx, a))
+		r.Post("/", UpdateTheMetricWithJSON(a))
+		r.Post("/{mType}/{mName}/{mValue}", UpdateTheMetric(a))
 	})
 
-	r.Post("/updates/", UpdateSliceOfMetrics(ctx, a))
+	r.Post("/updates/", UpdateSliceOfMetrics(a))
 
-	r.Get("/", ListAllMetrics(ctx, a))
+	r.Get("/", ListAllMetrics(a))
 
 	r.Route("/value", func(r chi.Router) {
-		r.Post("/", GetTheMetricWithJSON(ctx, a))
-		r.Get("/{mType}/{mName}", GetTheMetric(ctx, a))
+		r.Post("/", GetTheMetricWithJSON(a))
+		r.Get("/{mType}/{mName}", GetTheMetric(a))
 	})
 
-	r.Get("/ping", PingDB(ctx, a))
+	r.Get("/ping", PingDB(a))
 
 	return r
 }
