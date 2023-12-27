@@ -1,7 +1,6 @@
 package transport
 
 import (
-	"context"
 	"encoding/json"
 	"html/template"
 	"net/http"
@@ -37,8 +36,9 @@ const contentType = "Content-Type"
 const applicationJSON = "application/json"
 const internalServerError = "Internal server error"
 
-func UpdateTheMetric(ctx context.Context, a *API) http.HandlerFunc {
+func UpdateTheMetric(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		mType, mName, mValue := chi.URLParam(r, "mType"), chi.URLParam(r, "mName"), chi.URLParam(r, "mValue")
 		switch mType {
 		case models.Gauge:
@@ -75,8 +75,9 @@ func UpdateTheMetric(ctx context.Context, a *API) http.HandlerFunc {
 	}
 }
 
-func GetTheMetric(ctx context.Context, a *API) http.HandlerFunc {
+func GetTheMetric(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		mType, mName := chi.URLParam(r, "mType"), chi.URLParam(r, "mName")
 
 		switch mType {
@@ -109,8 +110,9 @@ func GetTheMetric(ctx context.Context, a *API) http.HandlerFunc {
 	}
 }
 
-func ListAllMetrics(ctx context.Context, a *API) http.HandlerFunc {
+func ListAllMetrics(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		tmpl, err := template.New("index").Parse(htmlTemplate)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -143,8 +145,9 @@ func ListAllMetrics(ctx context.Context, a *API) http.HandlerFunc {
 	}
 }
 
-func UpdateTheMetricWithJSON(ctx context.Context, a *API) http.HandlerFunc {
+func UpdateTheMetricWithJSON(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		var m models.Metrics
 		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -198,8 +201,9 @@ func UpdateTheMetricWithJSON(ctx context.Context, a *API) http.HandlerFunc {
 	}
 }
 
-func GetTheMetricWithJSON(ctx context.Context, a *API) http.HandlerFunc {
+func GetTheMetricWithJSON(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		var m models.Metrics
 		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -249,8 +253,9 @@ func GetTheMetricWithJSON(ctx context.Context, a *API) http.HandlerFunc {
 	}
 }
 
-func UpdateSliceOfMetrics(ctx context.Context, a *API) http.HandlerFunc {
+func UpdateSliceOfMetrics(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		var metrics []models.Metrics
 		if err := json.NewDecoder(r.Body).Decode(&metrics); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -264,8 +269,9 @@ func UpdateSliceOfMetrics(ctx context.Context, a *API) http.HandlerFunc {
 	}
 }
 
-func PingDB(ctx context.Context, a *API) http.HandlerFunc {
+func PingDB(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		if err := a.Storage.Ping(ctx); err != nil {
 			http.Error(w, internalServerError, http.StatusInternalServerError)
 		}
