@@ -263,6 +263,8 @@ func UpdateSliceOfMetrics(a *API) http.HandlerFunc {
 		}
 		if err := a.Storage.InsertBatch(ctx, metrics); err != nil {
 			a.Log.Error().Err(err).Msg("cannot insert batch in handler")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 		w.WriteHeader(http.StatusOK)
 		a.Log.Debug().Msg("UpdateSliceOfMetrics: sending HTTP 200 response")

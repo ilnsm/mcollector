@@ -11,6 +11,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/ilnsm/mcollector/internal/models"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
 )
@@ -81,7 +82,6 @@ func (db DB) InsertGauge(ctx context.Context, k string, v float64) error {
 	sleepTime := 1 * time.Second
 	attempt := 0
 
-requestLoop:
 	for {
 		tag, err := db.pool.Exec(
 			ctx,
@@ -95,7 +95,7 @@ requestLoop:
 				time.Sleep(sleepTime)
 				sleepTime += repeatFactor * time.Second
 				attempt++
-				continue requestLoop
+				continue
 			}
 			return fmt.Errorf("failed to store gauge: %w", err)
 		}
@@ -103,7 +103,7 @@ requestLoop:
 		if rowsAffectedCount != 1 {
 			return fmt.Errorf("insertGauge expected one row to be affected, actually affected %d", rowsAffectedCount)
 		}
-		break requestLoop
+		break
 	}
 
 	return nil
@@ -113,7 +113,6 @@ func (db DB) InsertCounter(ctx context.Context, k string, v int64) error {
 	sleepTime := 1 * time.Second
 	attempt := 0
 
-requestLoop:
 	for {
 		tag, err := db.pool.Exec(
 			ctx,
@@ -127,7 +126,7 @@ requestLoop:
 				time.Sleep(sleepTime)
 				sleepTime += repeatFactor * time.Second
 				attempt++
-				continue requestLoop
+				continue
 			}
 			return fmt.Errorf("failed to store counter: %w", err)
 		}
@@ -135,7 +134,7 @@ requestLoop:
 		if rowsAffectedCount != 1 {
 			return fmt.Errorf("insertCounter expected one row to be affected, actually affected %d", rowsAffectedCount)
 		}
-		break requestLoop
+		break
 	}
 
 	return nil
@@ -213,9 +212,8 @@ func (db DB) InsertBatch(ctx context.Context, metrics []models.Metrics) error {
 	sleepTime := 1 * time.Second
 	attempt := 0
 
-requestLoop:
 	for {
-		begin, err := db.pool.Begin(ctx)
+		tx, err := db.pool.Begin(ctx)
 		if err != nil {
 			if !isConnExp(err) {
 				return fmt.Errorf("failed to open transaction: %w", err)
@@ -225,42 +223,26 @@ requestLoop:
 				time.Sleep(sleepTime)
 				sleepTime += repeatFactor * time.Second
 				attempt++
-				continue requestLoop
+				continue
 			}
-			break requestLoop
+			break
 		}
 
-		for _, m := range metrics {
-			if m.MType == "counter" {
-				tag, err := begin.Exec(ctx,
-					`INSERT INTO counters (id, counter) VALUES ($1, $2)
-            		 ON CONFLICT (id) DO UPDATE SET counter = counters.counter + EXCLUDED.counter`,
-					m.ID, *m.Delta)
-				if err != nil {
-					return fmt.Errorf("failed to insert counter from batch: %w", err)
-				}
-				if rowsAffectedCount := tag.RowsAffected(); rowsAffectedCount != 1 {
-					log.Error().Msgf("insertBatch expected one row to be affected, actually affected %d", rowsAffectedCount)
-				}
-			}
-
-			if m.MType == "gauge" {
-				tag, err := begin.Exec(ctx,
-					`INSERT INTO gauges (id, gauge) VALUES ($1, $2)
-			 ON CONFLICT (id) DO UPDATE SET gauge = EXCLUDED.gauge`,
-					m.ID, *m.Value)
-				if err != nil {
-					return fmt.Errorf("failed to insert gauge from batch: %w", err)
-				}
-				if rowsAffectedCount := tag.RowsAffected(); rowsAffectedCount != 1 {
-					log.Error().Msgf("insertBatch expected one row to be affected, actually affected %d", rowsAffectedCount)
-				}
-			}
+		b := createBatch(metrics)
+		batchResults := tx.SendBatch(ctx, b)
+		_, err = batchResults.Exec()
+		if err != nil {
+			return fmt.Errorf("cannot exec batch: %w", err)
 		}
-		if err := begin.Commit(ctx); err != nil {
+
+		if err := batchResults.Close(); err != nil {
+			return fmt.Errorf("insert batch cannot close batchResult: %w", err)
+		}
+		if err := tx.Commit(ctx); err != nil {
 			return fmt.Errorf("cannot commit transaction: %w", err)
 		}
-		break requestLoop
+
+		break
 	}
 	return nil
 }
@@ -270,4 +252,27 @@ func (db DB) Ping(ctx context.Context) error {
 		return fmt.Errorf("cannot ping db: %w", err)
 	}
 	return nil
+}
+
+func createBatch(metrics []models.Metrics) *pgx.Batch {
+
+	b := &pgx.Batch{}
+	for _, m := range metrics {
+		if m.MType == "counter" {
+
+			sqlStatement := `INSERT INTO counters (id, counter) VALUES ($1, $2)
+            		 ON CONFLICT (id) DO UPDATE SET counter = counters.counter + EXCLUDED.counter`
+
+			b.Queue(sqlStatement, m.ID, *m.Delta)
+		}
+
+		if m.MType == "gauge" {
+
+			sqlStatement := `INSERT INTO gauges (id, gauge) VALUES ($1, $2)
+			 ON CONFLICT (id) DO UPDATE SET gauge = EXCLUDED.gauge`
+
+			b.Queue(sqlStatement, m.ID, *m.Value)
+		}
+	}
+	return b
 }
