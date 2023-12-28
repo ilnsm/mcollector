@@ -214,6 +214,11 @@ func (db DB) InsertBatch(ctx context.Context, metrics []models.Metrics) error {
 
 	for {
 		tx, err := db.pool.Begin(ctx)
+		defer func() {
+			if err := tx.Rollback(ctx); err != nil {
+				log.Error().Err(err).Str("func", "InsertBatch").Msg("cannot rollback tx")
+			}
+		}()
 		if err != nil {
 			if !isConnExp(err) {
 				return fmt.Errorf("failed to open transaction: %w", err)
