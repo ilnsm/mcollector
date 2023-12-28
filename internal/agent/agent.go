@@ -141,9 +141,7 @@ func doRequestWithJSON(endpoint string, metrics []models.Metrics, client *http.C
 
 func isStatusCoderetryable(code int) bool {
 	switch code {
-	case http.StatusRequestTimeout,
-		http.StatusTooEarly,
-		http.StatusTooManyRequests,
+	case
 		http.StatusInternalServerError,
 		http.StatusBadGateway,
 		http.StatusServiceUnavailable,
