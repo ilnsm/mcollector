@@ -35,20 +35,24 @@ const htmlTemplate = `
 const contentType = "Content-Type"
 const applicationJSON = "application/json"
 const internalServerError = "Internal server error"
+const sending200OK = "sending HTTP 200 response"
 
 func UpdateTheMetric(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		logger := a.Log.With().Str("func", "UpdateTheMetric").Logger()
 		mType, mName, mValue := chi.URLParam(r, "mType"), chi.URLParam(r, "mName"), chi.URLParam(r, "mValue")
 		switch mType {
 		case models.Gauge:
 			{
 				v, err := strconv.ParseFloat(mValue, 64)
 				if err != nil {
+					logger.Error().Err(err).Msg("cannot parse gauge")
 					http.Error(w, "Bad request to update gauge", http.StatusBadRequest)
 				}
 				err = a.Storage.InsertGauge(ctx, mName, v)
 				if err != nil {
+					logger.Error().Err(err).Msg("cannot update gauge")
 					http.Error(w, "Not Found", http.StatusBadRequest)
 				}
 
@@ -59,11 +63,13 @@ func UpdateTheMetric(a *API) http.HandlerFunc {
 			{
 				v, err := strconv.ParseInt(mValue, 10, 64)
 				if err != nil {
+					logger.Error().Err(err).Msg("cannot parse counter")
 					http.Error(w, "Bad request to update counter", http.StatusBadRequest)
 				}
 				err = a.Storage.InsertCounter(ctx, mName, v)
 
 				if err != nil {
+					logger.Error().Err(err).Msg("cannot update counter")
 					http.Error(w, "Not Found", http.StatusBadRequest)
 				}
 
@@ -78,12 +84,14 @@ func UpdateTheMetric(a *API) http.HandlerFunc {
 func GetTheMetric(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		logger := a.Log.With().Str("func", "UpdateTheMetric").Logger()
 		mType, mName := chi.URLParam(r, "mType"), chi.URLParam(r, "mName")
 
 		switch mType {
 		case models.Gauge:
 			v, err := a.Storage.SelectGauge(ctx, mName)
 			if err != nil {
+				logger.Error().Err(err).Msg("cannot get gauge")
 				http.NotFound(w, r)
 				return
 			}
@@ -96,12 +104,13 @@ func GetTheMetric(a *API) http.HandlerFunc {
 			{
 				v, err := a.Storage.SelectCounter(ctx, mName)
 				if err != nil {
+					logger.Error().Err(err).Msg("cannot get counter")
 					http.NotFound(w, r)
 					return
 				}
 				_, err = w.Write([]byte(strconv.FormatInt(v, 10)))
 				if err != nil {
-					log.Err(err)
+					logger.Error().Err(err).Msg("cannot write response")
 				}
 			}
 		default:
@@ -113,19 +122,23 @@ func GetTheMetric(a *API) http.HandlerFunc {
 func ListAllMetrics(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		logger := a.Log.With().Str("func", "ListAllMetrics").Logger()
 		tmpl, err := template.New("index").Parse(htmlTemplate)
 		if err != nil {
+			logger.Error().Err(err).Msg("cannot create template")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		c, err := a.Storage.GetCounters(ctx)
 		if err != nil {
+			logger.Error().Err(err).Msg("cannot get counters")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		g, err := a.Storage.GetGauges(ctx)
 		if err != nil {
+			logger.Error().Err(err).Msg("cannot get gauges")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -140,6 +153,7 @@ func ListAllMetrics(a *API) http.HandlerFunc {
 		w.Header().Set(contentType, "text/html")
 		err = tmpl.Execute(w, data)
 		if err != nil {
+			logger.Error().Err(err).Msg("cannot execute template")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}
@@ -148,6 +162,7 @@ func ListAllMetrics(a *API) http.HandlerFunc {
 func UpdateTheMetricWithJSON(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		logger := a.Log.With().Str("func", "UpdateTheMetricWithJSON").Logger()
 		var m models.Metrics
 		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -157,44 +172,43 @@ func UpdateTheMetricWithJSON(a *API) http.HandlerFunc {
 		case models.Gauge:
 			err := a.Storage.InsertGauge(ctx, m.ID, *m.Value)
 			if err != nil {
+				logger.Error().Err(err).Msg("cannot insert gauge")
 				http.Error(w, internalServerError, http.StatusInternalServerError)
 				return
 			}
 
-			*m.Value, err = a.Storage.SelectGauge(ctx, m.ID)
-			if err != nil {
-				a.Log.Error().Msg("error get gauge's value ")
-			}
 			w.Header().Set(contentType, applicationJSON)
 			enc := json.NewEncoder(w)
 			if err = enc.Encode(m); err != nil {
-				a.Log.Error().Str("func", "UpdateTheMetricWithJSON").Msg("")
+				logger.Error().Err(err).Msg("cannot encode gauge")
 				return
 			}
 
 			w.WriteHeader(http.StatusOK)
-			a.Log.Debug().Msg("UpdateTheMetricWithJSON: sending HTTP 200 response")
+			logger.Debug().Msg(sending200OK)
 
 		case models.Counter:
 			err := a.Storage.InsertCounter(ctx, m.ID, *m.Delta)
 			if err != nil {
+				logger.Error().Err(err).Msg("cannot insert counter")
 				http.Error(w, internalServerError, http.StatusInternalServerError)
 				return
 			}
 
 			*m.Delta, err = a.Storage.SelectCounter(ctx, m.ID)
 			if err != nil {
-				a.Log.Error().Msg("error get counter's value ")
+				logger.Error().Err(err).Msg("cannot get counter")
+				return
 			}
 			w.Header().Set(contentType, applicationJSON)
 			enc := json.NewEncoder(w)
 			if err = enc.Encode(m); err != nil {
-				a.Log.Error().Str("func", "UpdateTheMetricWithJSON").Msg("")
+				logger.Error().Err(err).Msg("cannot encode counter")
 				return
 			}
 
 			w.WriteHeader(http.StatusOK)
-			a.Log.Debug().Msg("UpdateTheMetricWithJSON: sending HTTP 200 response")
+			logger.Debug().Msg(sending200OK)
 		default:
 			http.Error(w, "Bad request", http.StatusBadRequest)
 		}
@@ -204,8 +218,10 @@ func UpdateTheMetricWithJSON(a *API) http.HandlerFunc {
 func GetTheMetricWithJSON(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		logger := a.Log.With().Str("func", "GetTheMetricWithJSON").Logger()
 		var m models.Metrics
 		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+			logger.Error().Err(err).Msg("cannot decode metric")
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -213,7 +229,7 @@ func GetTheMetricWithJSON(a *API) http.HandlerFunc {
 		case models.Gauge:
 			value, err := a.Storage.SelectGauge(ctx, m.ID)
 			if err != nil {
-				a.Log.Error().Msg("error getting gauge's value")
+				logger.Error().Err(err).Msg("error getting gauge's value")
 				w.WriteHeader(http.StatusNotFound)
 				w.Header().Set(contentType, applicationJSON)
 				return
@@ -222,17 +238,17 @@ func GetTheMetricWithJSON(a *API) http.HandlerFunc {
 			w.Header().Set(contentType, applicationJSON)
 			enc := json.NewEncoder(w)
 			if err := enc.Encode(m); err != nil {
-				a.Log.Error().Str("func", "GetTheMetricWithJSON").Msg("")
+				logger.Error().Err(err).Msg("")
 				return
 			}
 
 			w.WriteHeader(http.StatusOK)
-			a.Log.Debug().Msg("GetTheMetricWithJSON: sending HTTP 200 response")
+			logger.Debug().Msg(sending200OK)
 
 		case models.Counter:
 			delta, err := a.Storage.SelectCounter(ctx, m.ID)
 			if err != nil {
-				a.Log.Error().Msg("error getting counter's value")
+				logger.Error().Err(err).Msg("error getting counter's value")
 				w.WriteHeader(http.StatusNotFound)
 				w.Header().Set(contentType, applicationJSON)
 				return
@@ -241,12 +257,12 @@ func GetTheMetricWithJSON(a *API) http.HandlerFunc {
 			w.Header().Set(contentType, applicationJSON)
 			enc := json.NewEncoder(w)
 			if err := enc.Encode(m); err != nil {
-				a.Log.Error().Str("func", "GetTheMetricWithJSON").Msg("")
+				logger.Error().Err(err).Msg("")
 				return
 			}
 
 			w.WriteHeader(http.StatusOK)
-			a.Log.Debug().Msg("GetTheMetricWithJSON: sending HTTP 200 response")
+			logger.Debug().Msg("GetTheMetricWithJSON: sending HTTP 200 response")
 		default:
 			http.Error(w, "Bad request", http.StatusBadRequest)
 		}
@@ -256,25 +272,29 @@ func GetTheMetricWithJSON(a *API) http.HandlerFunc {
 func UpdateSliceOfMetrics(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		logger := a.Log.With().Str("func", "UpdateSliceOfMetrics").Logger()
 		var metrics []models.Metrics
 		if err := json.NewDecoder(r.Body).Decode(&metrics); err != nil {
+			logger.Error().Err(err).Msg("cannot decode slice of metrics")
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		if err := a.Storage.InsertBatch(ctx, metrics); err != nil {
-			a.Log.Error().Err(err).Msg("cannot insert batch in handler")
+			logger.Error().Err(err).Msg("cannot insert batch in handler")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		a.Log.Debug().Msg("UpdateSliceOfMetrics: sending HTTP 200 response")
+		logger.Debug().Msg(sending200OK)
 	}
 }
 
 func PingDB(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		logger := a.Log.With().Str("func", "PingDB").Logger()
 		if err := a.Storage.Ping(ctx); err != nil {
+			logger.Error().Err(err)
 			http.Error(w, internalServerError, http.StatusInternalServerError)
 		}
 	}
