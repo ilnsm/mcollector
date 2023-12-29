@@ -132,14 +132,14 @@ func doRequestWithJSON(endpoint string, metrics []models.Metrics, client *http.C
 		return fmt.Errorf("body close %s: %w", wrapError, err)
 	}
 
-	if isStatusCoderetryable(r.StatusCode) {
+	if isStatusCodeRetryable(r.StatusCode) {
 		return errRetryableHTTPStatusCode
 	}
 
 	return nil
 }
 
-func isStatusCoderetryable(code int) bool {
+func isStatusCodeRetryable(code int) bool {
 	switch code {
 	case
 		http.StatusInternalServerError,
