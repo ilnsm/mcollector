@@ -47,12 +47,10 @@ func UpdateTheMetric(a *API) http.HandlerFunc {
 			{
 				v, err := strconv.ParseFloat(mValue, 64)
 				if err != nil {
-					logger.Error().Err(err).Msg("cannot parse gauge")
 					http.Error(w, "Bad request to update gauge", http.StatusBadRequest)
 				}
 				err = a.Storage.InsertGauge(ctx, mName, v)
 				if err != nil {
-					logger.Error().Err(err).Msg("cannot update gauge")
 					http.Error(w, "Not Found", http.StatusBadRequest)
 				}
 
@@ -91,7 +89,6 @@ func GetTheMetric(a *API) http.HandlerFunc {
 		case models.Gauge:
 			v, err := a.Storage.SelectGauge(ctx, mName)
 			if err != nil {
-				logger.Error().Err(err).Msg("cannot get gauge")
 				http.NotFound(w, r)
 				return
 			}
@@ -104,7 +101,6 @@ func GetTheMetric(a *API) http.HandlerFunc {
 			{
 				v, err := a.Storage.SelectCounter(ctx, mName)
 				if err != nil {
-					logger.Error().Err(err).Msg("cannot get counter")
 					http.NotFound(w, r)
 					return
 				}
@@ -229,7 +225,6 @@ func GetTheMetricWithJSON(a *API) http.HandlerFunc {
 		case models.Gauge:
 			value, err := a.Storage.SelectGauge(ctx, m.ID)
 			if err != nil {
-				logger.Error().Err(err).Msg("error getting gauge's value")
 				w.WriteHeader(http.StatusNotFound)
 				w.Header().Set(contentType, applicationJSON)
 				return
@@ -248,7 +243,6 @@ func GetTheMetricWithJSON(a *API) http.HandlerFunc {
 		case models.Counter:
 			delta, err := a.Storage.SelectCounter(ctx, m.ID)
 			if err != nil {
-				logger.Error().Err(err).Msg("error getting counter's value")
 				w.WriteHeader(http.StatusNotFound)
 				w.Header().Set(contentType, applicationJSON)
 				return
