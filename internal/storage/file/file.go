@@ -9,10 +9,10 @@ import (
 	"os"
 	"time"
 
-	memorystorage "github.com/ilnsm/mcollector/internal/storage/memory"
+	memorystorage "github.com/ospiem/mcollector/internal/storage/memory"
 	"github.com/rs/zerolog/log"
 
-	"github.com/ilnsm/mcollector/internal/models"
+	"github.com/ospiem/mcollector/internal/models"
 )
 
 const filePermission = 0644

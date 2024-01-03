@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/ilnsm/mcollector/internal/models"
+	"github.com/ospiem/mcollector/internal/models"
 	"github.com/rs/zerolog/log"
 )
 

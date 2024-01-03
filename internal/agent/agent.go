@@ -13,9 +13,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ilnsm/mcollector/internal/models"
+	"github.com/ospiem/mcollector/internal/models"
 
-	"github.com/ilnsm/mcollector/internal/agent/config"
+	"github.com/ospiem/mcollector/internal/agent/config"
 	"github.com/rs/zerolog/log"
 )
 

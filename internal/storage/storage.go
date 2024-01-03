@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ilnsm/mcollector/internal/models"
-	"github.com/ilnsm/mcollector/internal/server/config"
-	"github.com/ilnsm/mcollector/internal/storage/file"
-	memorystorage "github.com/ilnsm/mcollector/internal/storage/memory"
-	"github.com/ilnsm/mcollector/internal/storage/postgres"
+	"github.com/ospiem/mcollector/internal/models"
+	"github.com/ospiem/mcollector/internal/server/config"
+	"github.com/ospiem/mcollector/internal/storage/file"
+	memorystorage "github.com/ospiem/mcollector/internal/storage/memory"
+	"github.com/ospiem/mcollector/internal/storage/postgres"
 )
 
 type Storage interface {

@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ilnsm/mcollector/internal/models"
-	"github.com/ilnsm/mcollector/internal/server/middleware/compress"
+	"github.com/ospiem/mcollector/internal/models"
+	"github.com/ospiem/mcollector/internal/server/middleware/compress"
 	"github.com/rs/zerolog"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/ilnsm/mcollector/internal/server/config"
-	"github.com/ilnsm/mcollector/internal/server/middleware/logger"
+	"github.com/ospiem/mcollector/internal/server/config"
+	"github.com/ospiem/mcollector/internal/server/middleware/logger"
 	"github.com/rs/zerolog/log"
 )
 

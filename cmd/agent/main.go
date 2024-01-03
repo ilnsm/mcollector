@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/ilnsm/mcollector/internal/agent"
+	"github.com/ospiem/mcollector/internal/agent"
 	"github.com/rs/zerolog/log"
 )
 
