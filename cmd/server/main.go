@@ -4,9 +4,9 @@ import (
 	"context"
 	"os"
 
-	"github.com/ilnsm/mcollector/internal/server/config"
-	"github.com/ilnsm/mcollector/internal/server/transport"
-	"github.com/ilnsm/mcollector/internal/storage"
+	"github.com/ospiem/mcollector/internal/server/config"
+	"github.com/ospiem/mcollector/internal/server/transport"
+	"github.com/ospiem/mcollector/internal/storage"
 	"github.com/rs/zerolog"
 )
 

@@ -5,9 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	memorystorage "github.com/ilnsm/mcollector/internal/storage/memory"
+	memorystorage "github.com/ospiem/mcollector/internal/storage/memory"
 
-	"github.com/ilnsm/mcollector/internal/server/config"
+	"github.com/ospiem/mcollector/internal/server/config"
 	"github.com/rs/zerolog"
 )
 

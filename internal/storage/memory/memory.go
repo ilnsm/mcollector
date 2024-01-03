@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ilnsm/mcollector/internal/models"
+	"github.com/ospiem/mcollector/internal/models"
 )
 
 type MemStorage struct {
