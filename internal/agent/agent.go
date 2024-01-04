@@ -3,6 +3,8 @@ package agent
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -74,7 +76,7 @@ func Run() error {
 			sleepTime := 1 * time.Second
 			for {
 				var opError *net.OpError
-				err = doRequestWithJSON(cfg.Endpoint, metricSlice, client)
+				err = doRequestWithJSON(cfg, metricSlice, client)
 				if err == nil {
 					break
 				}
@@ -96,7 +98,7 @@ func Run() error {
 	}
 }
 
-func doRequestWithJSON(endpoint string, metrics []models.Metrics, client *http.Client) error {
+func doRequestWithJSON(cfg config.Config, metrics []models.Metrics, client *http.Client) error {
 	const wrapError = "do request error"
 
 	jsonData, err := json.Marshal(metrics)
@@ -113,15 +115,18 @@ func doRequestWithJSON(endpoint string, metrics []models.Metrics, client *http.C
 		return fmt.Errorf("close gzip in %s: %w", wrapError, err)
 	}
 
-	endpoint = fmt.Sprintf("%v%v%v", defaultSchema, endpoint, updatePath)
+	ep := fmt.Sprintf("%v%v%v", defaultSchema, cfg.Endpoint, updatePath)
 
-	request, err := http.NewRequest(http.MethodPost, endpoint, &buf)
+	request, err := http.NewRequest(http.MethodPost, ep, &buf)
 	if err != nil {
 		return fmt.Errorf("generate request %s: %w", wrapError, err)
 	}
 
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Content-Encoding", "gzip")
+	if cfg.Key != "" {
+		request.Header.Set("HashSHA256", generateHash(cfg.Key, jsonData))
+	}
 
 	r, err := client.Do(request)
 	if err != nil {
@@ -150,4 +155,14 @@ func isStatusCodeRetryable(code int) bool {
 	default:
 		return false
 	}
+}
+
+func generateHash(key string, data []byte) string {
+	h := hmac.New(sha256.New, []byte(key))
+	_, err := h.Write(data)
+	if err != nil {
+		log.Error().Err(err).Msg("cannot hash data")
+		return ""
+	}
+	return string(h.Sum(nil))
 }

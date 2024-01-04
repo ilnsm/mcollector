@@ -11,6 +11,7 @@ type Config struct {
 	Endpoint       string `env:"ADDRESS"`
 	ReportInterval time.Duration
 	PollInterval   time.Duration
+	Key            string `env:"KEY"`
 }
 
 type tmpDurations struct {

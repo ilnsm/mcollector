@@ -13,6 +13,7 @@ func ParseFlag(c *Config) {
 	flag.StringVar(&c.Endpoint, "a", "localhost:8080", "Configure the server's host:port")
 	flag.IntVar(&ri, "r", defaultReportInterval, "Configure the agent's report interval")
 	flag.IntVar(&pi, "p", defaultPollInterval, "Configure the agent's poll interval")
+	flag.StringVar(&c.Key, "k", "", "Set key for hash function")
 	flag.Parse()
 
 	c.ReportInterval = time.Duration(ri) * time.Second
