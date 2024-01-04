@@ -9,10 +9,10 @@ import (
 
 type Config struct {
 	Endpoint       string `env:"ADDRESS"`
-	ReportInterval time.Duration
-	PollInterval   time.Duration
 	Key            string `env:"KEY"`
 	LogLevel       string `env:"LOG_LEVEL"`
+	ReportInterval time.Duration
+	PollInterval   time.Duration
 }
 
 type tmpDurations struct {

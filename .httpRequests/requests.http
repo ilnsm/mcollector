@@ -101,3 +101,13 @@ Accept-Encoding: gzip
 
 [{"id":"gaugeNameBatchJSON","type":"gauge","value":138.988},
   {"id":"counterNameBatchJSON","type":"counter","delta":113}]
+
+
+###
+POST http://{{default_url}}/updates/
+Content-Type: application/json
+Accept-Encoding: gzip
+HashSHA256: "fsklj325u2tiofiucvpwsjfl234"
+
+[{"id":"gaugeNameBatchJSON","type":"gauge","value":138.988},
+  {"id":"counterNameBatchJSON","type":"counter","delta":113}]

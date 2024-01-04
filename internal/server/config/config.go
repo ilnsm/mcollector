@@ -11,6 +11,7 @@ import (
 type Config struct {
 	Endpoint    string `env:"ADDRESS"`
 	LogLevel    string `env:"LOG_LEVEL"`
+	Key         string `env:"KEY"`
 	StoreConfig storeConf.Config
 }
 type tmpDurations struct {
