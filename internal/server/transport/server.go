@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/ospiem/mcollector/internal/models"
 	"github.com/ospiem/mcollector/internal/server/middleware/compress"
+	"github.com/ospiem/mcollector/internal/server/middleware/hash"
 	"github.com/rs/zerolog"
 
 	"github.com/go-chi/chi/v5"
@@ -52,7 +54,9 @@ func (a *API) Run() error {
 
 func (a *API) registerAPI() chi.Router {
 	r := chi.NewRouter()
+	r.Use(middleware.Recoverer)
 	r.Use(compress.DecompressRequest(a.Log))
+	r.Use(hash.Check(a.Log, a.Cfg.Key))
 	r.Use(logger.RequestLogger(a.Log))
 	r.Use(compress.CompressResponse(a.Log))
 

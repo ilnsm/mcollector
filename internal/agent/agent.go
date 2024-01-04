@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -168,5 +169,9 @@ func generateHash(key string, data []byte, l zerolog.Logger) string {
 		logger.Error().Err(err).Msg("cannot hash data")
 		return ""
 	}
-	return string(h.Sum(nil))
+
+	hash := hex.EncodeToString(h.Sum(nil))
+	logger.Debug().Msg(hash)
+
+	return hash
 }
