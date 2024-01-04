@@ -7,6 +7,7 @@ import (
 	"github.com/ospiem/mcollector/internal/server/config"
 	"github.com/ospiem/mcollector/internal/server/transport"
 	"github.com/ospiem/mcollector/internal/storage"
+	"github.com/ospiem/mcollector/internal/tools"
 	"github.com/rs/zerolog"
 )
 
@@ -18,7 +19,7 @@ func main() {
 		logger.Fatal().Err(err).Send()
 	}
 
-	setLogLevel(cfg.LogLevel)
+	tools.SetLogLevel(cfg.LogLevel)
 
 	ctx := context.Background()
 

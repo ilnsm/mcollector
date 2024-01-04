@@ -1,11 +1,11 @@
-package main
+package tools
 
 import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
-func setLogLevel(level string) {
+func SetLogLevel(level string) {
 	switch level {
 	case "debug":
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)

@@ -12,6 +12,7 @@ type Config struct {
 	ReportInterval time.Duration
 	PollInterval   time.Duration
 	Key            string `env:"KEY"`
+	LogLevel       string `env:"LOG_LEVEL"`
 }
 
 type tmpDurations struct {
