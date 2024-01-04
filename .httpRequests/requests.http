@@ -104,10 +104,22 @@ Accept-Encoding: gzip
 
 
 ###
+#bad hash
 POST http://{{default_url}}/updates/
 Content-Type: application/json
 Accept-Encoding: gzip
 HashSHA256: "fsklj325u2tiofiucvpwsjfl234"
+
+[{"id":"gaugeNameBatchJSON","type":"gauge","value":138.988},
+  {"id":"counterNameBatchJSON","type":"counter","delta":113}]
+
+
+###
+#good hash
+POST http://{{default_url}}/updates/
+Content-Type: application/json
+Accept-Encoding: gzip
+HashSHA256: "810f6b94525bcfac28f9870a314fdc151bdb6427bd0acdb6574100a98643945a"
 
 [{"id":"gaugeNameBatchJSON","type":"gauge","value":138.988},
   {"id":"counterNameBatchJSON","type":"counter","delta":113}]
