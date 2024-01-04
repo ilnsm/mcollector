@@ -5,15 +5,13 @@ import (
 	"time"
 
 	"github.com/caarlos0/env/v9"
+	storeConf "github.com/ospiem/mcollector/internal/storage/config"
 )
 
 type Config struct {
-	Endpoint        string `env:"ADDRESS"`
-	LogLevel        string `env:"LOG_LEVEL"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	DatabaseDsn     string `env:"DATABASE_DSN"`
-	Restore         bool   `env:"RESTORE"`
-	StoreInterval   time.Duration
+	Endpoint    string `env:"ADDRESS"`
+	LogLevel    string `env:"LOG_LEVEL"`
+	StoreConfig storeConf.Config
 }
 type tmpDurations struct {
 	StoreInterval int `env:"STORE_INTERVAL"`
@@ -37,7 +35,7 @@ func New() (Config, error) {
 	}
 
 	if tmp.StoreInterval > 0 {
-		c.StoreInterval = time.Duration(tmp.StoreInterval) * time.Second
+		c.StoreConfig.StoreInterval = time.Duration(tmp.StoreInterval) * time.Second
 	}
 
 	return c, nil

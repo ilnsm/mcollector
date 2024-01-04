@@ -22,7 +22,7 @@ func main() {
 
 	ctx := context.Background()
 
-	s, err := storage.New(ctx, cfg)
+	s, err := storage.New(ctx, cfg.StoreConfig)
 	if err != nil {
 		logger.Fatal().Err(err).Send()
 	}
