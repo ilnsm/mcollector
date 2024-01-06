@@ -50,9 +50,6 @@ func Check(log zerolog.Logger, key string) func(next http.Handler) http.Handler 
 				return
 			}
 
-			l.Debug().Msgf("got hash from header: %s", hash)
-			l.Debug().Msgf("generated hash: %s", curHash)
-
 			next.ServeHTTP(w, r)
 		})
 	}
