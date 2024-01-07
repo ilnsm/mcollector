@@ -14,7 +14,8 @@ func ParseFlag(c *Config) {
 	flag.IntVar(&ri, "r", defaultReportInterval, "Configure the agent's report interval")
 	flag.IntVar(&pi, "p", defaultPollInterval, "Configure the agent's poll interval")
 	flag.StringVar(&c.Key, "k", "", "Set key for hash function")
-	flag.StringVar(&c.LogLevel, "l", "info", "Configure the agent's log level")
+	flag.StringVar(&c.LogLevel, "log", "info", "Configure the agent's log level")
+	flag.IntVar(&c.RateLimit, "l", 0, "define number of workers to send metrics")
 	flag.Parse()
 
 	c.ReportInterval = time.Duration(ri) * time.Second
