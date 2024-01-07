@@ -13,6 +13,7 @@ type Config struct {
 	LogLevel       string `env:"LOG_LEVEL"`
 	ReportInterval time.Duration
 	PollInterval   time.Duration
+	RateLimit      int `env:"RATE_LIMIT"`
 }
 
 type tmpDurations struct {
