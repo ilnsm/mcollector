@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/ospiem/mcollector/internal/agent"
 )
@@ -16,12 +17,12 @@ func main() {
 	defer cancel()
 
 	var wg sync.WaitGroup
-
 	agent.Run(ctx, &wg)
-	handleSignals(cancel)
-
-	wg.Wait()
-	fmt.Println("Graceful shutdown complete")
+	//handleSignals(cancel)
+	//
+	//wg.Wait()
+	//fmt.Println("Graceful shutdown complete")
+	time.Sleep(10 * time.Second)
 }
 
 func handleSignals(cancel context.CancelFunc) {

@@ -50,21 +50,21 @@ func Run(ctx context.Context, wg *sync.WaitGroup) {
 	ch := generator(ctx, wg, cfg, logger)
 
 	for i := 0; i < cfg.RateLimit; i++ {
-		wg.Add(1)
+		//wg.Add(1)
 		go worker(ctx, wg, cfg, ch, logger)
 	}
+	wg.Done()
 }
 
 func generator(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, log zerolog.Logger) chan map[string]string {
-	defer wg.Done()
+	//defer wg.Done()
 	l := log.With().Str("func", "generator").Logger()
 	mCHan := make(chan map[string]string, workerPoolSizeFactor*cfg.RateLimit)
-	mTicker := time.NewTicker(cfg.PollInterval)
-	defer mTicker.Stop()
-
 	l.Debug().Msg("Hello from generator")
 	go func() {
 		defer close(mCHan)
+		mTicker := time.NewTicker(cfg.PollInterval)
+		defer mTicker.Stop()
 
 		for {
 			select {
@@ -87,7 +87,7 @@ func generator(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, log z
 }
 
 func worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, mCHan chan map[string]string, log zerolog.Logger) {
-	defer wg.Done()
+	//defer wg.Done()
 	l := log.With().Str("func", "worker").Logger()
 	reqTicker := time.NewTicker(cfg.ReportInterval)
 	defer reqTicker.Stop()
