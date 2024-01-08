@@ -46,18 +46,15 @@ func Run(ctx context.Context, wg *sync.WaitGroup) {
 	logger.Info().Msgf("Start server\nPush to %s\nCollecting metrics every %v\n"+
 		"Send metrics every %v\n", cfg.Endpoint, cfg.PollInterval, cfg.ReportInterval)
 
-	wg.Add(1)
-	ch := generator(ctx, wg, cfg, logger)
+	ch := generator(ctx, cfg, logger)
 
 	for i := 0; i < cfg.RateLimit; i++ {
-		//wg.Add(1)
-		go worker(ctx, wg, cfg, ch, logger)
+		wg.Add(1)
+		go worker(ctx, cfg, ch, logger)
 	}
-	wg.Done()
 }
 
-func generator(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, log zerolog.Logger) chan map[string]string {
-	//defer wg.Done()
+func generator(ctx context.Context, cfg config.Config, log zerolog.Logger) chan map[string]string {
 	l := log.With().Str("func", "generator").Logger()
 	mCHan := make(chan map[string]string, workerPoolSizeFactor*cfg.RateLimit)
 	l.Debug().Msg("Hello from generator")
@@ -86,8 +83,7 @@ func generator(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, log z
 	return mCHan
 }
 
-func worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, mCHan chan map[string]string, log zerolog.Logger) {
-	//defer wg.Done()
+func worker(ctx context.Context, cfg config.Config, mCHan chan map[string]string, log zerolog.Logger) {
 	l := log.With().Str("func", "worker").Logger()
 	reqTicker := time.NewTicker(cfg.ReportInterval)
 	defer reqTicker.Stop()
