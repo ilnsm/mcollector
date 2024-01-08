@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -13,15 +14,14 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"runtime"
 	"strconv"
+	"sync"
 	"time"
 
+	"github.com/ospiem/mcollector/internal/agent/config"
 	"github.com/ospiem/mcollector/internal/models"
 	"github.com/ospiem/mcollector/internal/tools"
 	"github.com/rs/zerolog"
-
-	"github.com/ospiem/mcollector/internal/agent/config"
 )
 
 const defaultSchema = "http://"
@@ -31,73 +31,119 @@ const counter = "counter"
 const cannotCreateRequest = "cannot create request"
 const retryAttempts = 3
 const repeatFactor = 2
+const workerPoolSizeFactor = 1
 
 var errRetryableHTTPStatusCode = errors.New("got retryable status code")
 
-func Run() error {
+func Run(ctx context.Context, wg *sync.WaitGroup) {
 	cfg, err := config.New()
 	if err != nil {
-		return fmt.Errorf("run agent error: %w", err)
+		return
 	}
+
 	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 	tools.SetLogLevel(cfg.LogLevel)
 	logger.Info().Msgf("Start server\nPush to %s\nCollecting metrics every %v\n"+
 		"Send metrics every %v\n", cfg.Endpoint, cfg.PollInterval, cfg.ReportInterval)
 
-	m := runtime.MemStats{}
-	metrics := make(map[string]string)
-	client := &http.Client{}
-	var metricSlice []models.Metrics
+	wg.Add(1)
+	ch := generator(ctx, wg, cfg, logger)
 
+	for i := 0; i < cfg.RateLimit; i++ {
+		wg.Add(1)
+		go worker(ctx, wg, cfg, ch, logger)
+	}
+}
+
+func generator(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, log zerolog.Logger) chan map[string]string {
+	defer wg.Done()
+	l := log.With().Str("func", "generator").Logger()
+	mCHan := make(chan map[string]string, workerPoolSizeFactor*cfg.RateLimit)
 	mTicker := time.NewTicker(cfg.PollInterval)
 	defer mTicker.Stop()
+
+	l.Debug().Msg("Hello from generator")
+	go func() {
+		defer close(mCHan)
+
+		for {
+			select {
+			case <-ctx.Done():
+				l.Info().Msg("Stopping generator")
+				return
+			case <-mTicker.C:
+				l.Debug().Msg("Trying to get metrics")
+				m, err := GetMetrics()
+				if err != nil {
+					l.Error().Err(err).Msg("cannot get metrics")
+					continue
+				}
+				mCHan <- m
+			}
+		}
+	}()
+
+	return mCHan
+}
+
+func worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, mCHan chan map[string]string, log zerolog.Logger) {
+	defer wg.Done()
+	l := log.With().Str("func", "worker").Logger()
 	reqTicker := time.NewTicker(cfg.ReportInterval)
 	defer reqTicker.Stop()
 
-	var pollCounter int64
+	l.Debug().Msg("Hello from worker")
 	for {
 		select {
-		case <-mTicker.C:
-			err := GetMetrics(&m, metrics)
-			if err != nil {
-				logger.Err(err)
-			}
-			pollCounter++
-		case <-reqTicker.C:
-			for name, value := range metrics {
-				v, err := strconv.ParseFloat(value, 64)
-				if err != nil {
-					logger.Error().Msg("error convert string to float")
-					break
-				}
-				metricSlice = append(metricSlice, models.Metrics{MType: gauge, ID: name, Value: &v})
-			}
-			randomFloat := rand.Float64()
-			metricSlice = append(metricSlice, models.Metrics{MType: gauge, ID: "RandomValue", Value: &randomFloat},
-				models.Metrics{MType: counter, ID: "PollCount", Delta: &pollCounter})
+		case <-ctx.Done():
+			l.Info().Msg("Stopping worker")
+			return
+		default:
+			var pollCounter int64
+			for metrics := range mCHan {
+				client := &http.Client{}
+				var metricSlice []models.Metrics
 
-			attempt := 0
-			sleepTime := 1 * time.Second
-			for {
-				var opError *net.OpError
-				err = doRequestWithJSON(cfg, metricSlice, client, logger)
-				if err == nil {
-					break
-				}
-				if errors.As(err, &opError) || errors.Is(err, errRetryableHTTPStatusCode) {
-					logger.Error().Err(err).Msgf("%s, will retry in %v", cannotCreateRequest, sleepTime)
-					time.Sleep(sleepTime)
-					attempt++
-					sleepTime += repeatFactor * time.Second
-					if attempt < retryAttempts {
-						continue
+				l.Debug().Msg("Trying to generate request")
+				for name, value := range metrics {
+					v, err := strconv.ParseFloat(value, 64)
+					if err != nil {
+						l.Error().Err(err).Msg("error convert string to float")
+						break
 					}
-					break
+					metricSlice = append(metricSlice, models.Metrics{MType: gauge, ID: name, Value: &v})
 				}
-				logger.Error().Err(err).Msgf("cannot do request, failed %d times", retryAttempts)
+
+				randomFloat := rand.Float64()
+				metricSlice = append(metricSlice, models.Metrics{MType: gauge, ID: "RandomValue", Value: &randomFloat},
+					models.Metrics{MType: counter, ID: "PollCount", Delta: &pollCounter})
+
+				attempt := 0
+				sleepTime := 1 * time.Second
+
+				for {
+					var opError *net.OpError
+					l.Debug().Msg("Trying to send request")
+					err := doRequestWithJSON(cfg, metricSlice, client, log)
+					if err == nil {
+						break
+					}
+					if errors.As(err, &opError) || errors.Is(err, errRetryableHTTPStatusCode) {
+						l.Error().Err(err).Msgf("%s, will retry in %v", cannotCreateRequest, sleepTime)
+						time.Sleep(sleepTime)
+						attempt++
+						sleepTime += repeatFactor * time.Second
+						if attempt < retryAttempts {
+							continue
+						}
+						break
+					}
+					l.Error().Err(err).Msgf("cannot do request, failed %d times", retryAttempts)
+				}
+
+				metricSlice = nil
+				pollCounter = 0
 			}
-			metricSlice = nil
-			pollCounter = 0
 		}
 	}
 }
