@@ -16,7 +16,7 @@ run_server: server postgres
 
 .PHONY: run_agent
 run_agent: agent
-	@./cmd/agent/agent
+	@./cmd/agent/agent -p 1 -r 1 -log debug
 
 .PHONY: test
 test: server agent
