@@ -50,8 +50,9 @@ func Run(ctx context.Context, wg *sync.WaitGroup) {
 
 	for i := 0; i < cfg.RateLimit; i++ {
 		wg.Add(1)
-		go worker(ctx, cfg, ch, logger)
+		go worker(ctx, cfg, ch, logger, wg)
 	}
+	wg.Wait()
 }
 
 func generator(ctx context.Context, cfg config.Config, log zerolog.Logger) chan map[string]string {
@@ -63,12 +64,12 @@ func generator(ctx context.Context, cfg config.Config, log zerolog.Logger) chan 
 		mTicker := time.NewTicker(cfg.PollInterval)
 		defer mTicker.Stop()
 
-		for {
+		for range mTicker.C {
 			select {
 			case <-ctx.Done():
 				l.Info().Msg("Stopping generator")
 				return
-			case <-mTicker.C:
+			default:
 				l.Debug().Msg("Trying to get metrics")
 				m, err := GetMetrics()
 				if err != nil {
@@ -83,63 +84,62 @@ func generator(ctx context.Context, cfg config.Config, log zerolog.Logger) chan 
 	return mCHan
 }
 
-func worker(ctx context.Context, cfg config.Config, mCHan chan map[string]string, log zerolog.Logger) {
+func worker(ctx context.Context, cfg config.Config, mCHan chan map[string]string, log zerolog.Logger, wg *sync.WaitGroup) {
+	defer wg.Done()
 	l := log.With().Str("func", "worker").Logger()
 	reqTicker := time.NewTicker(cfg.ReportInterval)
 	defer reqTicker.Stop()
 
 	l.Debug().Msg("Hello from worker")
-	for {
+	for metrics := range mCHan {
 		select {
 		case <-ctx.Done():
 			l.Info().Msg("Stopping worker")
 			return
-		default:
+		case <-reqTicker.C:
 			var pollCounter int64
-			for metrics := range mCHan {
-				client := &http.Client{}
-				var metricSlice []models.Metrics
+			client := &http.Client{}
+			var metricSlice []models.Metrics
 
-				l.Debug().Msg("Trying to generate request")
-				for name, value := range metrics {
-					v, err := strconv.ParseFloat(value, 64)
-					if err != nil {
-						l.Error().Err(err).Msg("error convert string to float")
-						break
-					}
-					metricSlice = append(metricSlice, models.Metrics{MType: gauge, ID: name, Value: &v})
+			l.Debug().Msg("Trying to generate request")
+			for name, value := range metrics {
+				v, err := strconv.ParseFloat(value, 64)
+				if err != nil {
+					l.Error().Err(err).Msg("error convert string to float")
+					continue
 				}
-
-				randomFloat := rand.Float64()
-				metricSlice = append(metricSlice, models.Metrics{MType: gauge, ID: "RandomValue", Value: &randomFloat},
-					models.Metrics{MType: counter, ID: "PollCount", Delta: &pollCounter})
-
-				attempt := 0
-				sleepTime := 1 * time.Second
-
-				for {
-					var opError *net.OpError
-					l.Debug().Msg("Trying to send request")
-					err := doRequestWithJSON(cfg, metricSlice, client, log)
-					if err == nil {
-						break
-					}
-					if errors.As(err, &opError) || errors.Is(err, errRetryableHTTPStatusCode) {
-						l.Error().Err(err).Msgf("%s, will retry in %v", cannotCreateRequest, sleepTime)
-						time.Sleep(sleepTime)
-						attempt++
-						sleepTime += repeatFactor * time.Second
-						if attempt < retryAttempts {
-							continue
-						}
-						break
-					}
-					l.Error().Err(err).Msgf("cannot do request, failed %d times", retryAttempts)
-				}
-
-				metricSlice = nil
-				pollCounter = 0
+				metricSlice = append(metricSlice, models.Metrics{MType: gauge, ID: name, Value: &v})
 			}
+
+			randomFloat := rand.Float64()
+			metricSlice = append(metricSlice, models.Metrics{MType: gauge, ID: "RandomValue", Value: &randomFloat},
+				models.Metrics{MType: counter, ID: "PollCount", Delta: &pollCounter})
+
+			attempt := 0
+			sleepTime := 1 * time.Second
+
+			for {
+				var opError *net.OpError
+				l.Debug().Msg("Trying to send request")
+				err := doRequestWithJSON(cfg, metricSlice, client, log)
+				if err == nil {
+					break
+				}
+				if errors.As(err, &opError) || errors.Is(err, errRetryableHTTPStatusCode) {
+					l.Error().Err(err).Msgf("%s, will retry in %v", cannotCreateRequest, sleepTime)
+					time.Sleep(sleepTime)
+					attempt++
+					sleepTime += repeatFactor * time.Second
+					if attempt < retryAttempts {
+						continue
+					}
+					break
+				}
+				l.Error().Err(err).Msgf("cannot do request, failed %d times", retryAttempts)
+			}
+
+			metricSlice = nil
+			pollCounter = 0
 		}
 	}
 }
