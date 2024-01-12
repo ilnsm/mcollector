@@ -19,7 +19,7 @@ func main() {
 		logger.Fatal().Err(err).Send()
 	}
 
-	tools.SetLogLevel(cfg.LogLevel)
+	tools.SetGlobalLogLevel(cfg.LogLevel)
 
 	ctx := context.Background()
 

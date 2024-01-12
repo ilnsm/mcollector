@@ -52,6 +52,7 @@ func Generator(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, log z
 			default:
 			}
 			m, err := GetMetrics()
+			l.Error().Err(err).Msg("debug get metrics")
 			if err != nil {
 				l.Error().Err(err).Msg("cannot get metrics")
 				continue
@@ -97,6 +98,13 @@ func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config,
 			sleepTime := 1 * time.Second
 
 			for {
+				select {
+				case <-ctx.Done():
+					l.Info().Msg("Stopping worker")
+					return
+				default:
+				}
+
 				var opError *net.OpError
 				l.Debug().Msg("Trying to send request")
 				err := doRequestWithJSON(cfg, metricSlice, client, log)
