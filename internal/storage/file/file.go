@@ -18,10 +18,10 @@ import (
 const filePermission = 0644
 
 type FileStorage struct {
-	m               memorystorage.MemStorage
+	m               *memorystorage.MemStorage
 	FileStoragePath string
-	Restore         bool
 	StoreInterval   time.Duration
+	Restore         bool
 }
 
 func New(ctx context.Context, fileStoragePath string,
@@ -30,7 +30,7 @@ func New(ctx context.Context, fileStoragePath string,
 	ms := memorystorage.New()
 
 	f := FileStorage{
-		m:               *ms,
+		m:               ms,
 		FileStoragePath: fileStoragePath,
 		Restore:         restore,
 		StoreInterval:   storeInterval,
