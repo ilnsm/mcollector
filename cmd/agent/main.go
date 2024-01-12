@@ -8,13 +8,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/edwingeng/deque/v2"
 	"github.com/ospiem/mcollector/internal/agent"
 	"github.com/ospiem/mcollector/internal/agent/config"
 	"github.com/ospiem/mcollector/internal/tools"
 	"github.com/rs/zerolog"
 )
 
-const timeoutShutdown = 10 * time.Second
+const timeoutShutdown = 15 * time.Second
 
 func main() {
 	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
@@ -51,15 +52,33 @@ func run(logger zerolog.Logger) error {
 		wg.Wait()
 	}()
 
+	data := deque.NewDeque[map[string]string]()
+	pollTicker := time.NewTicker(cfg.PollInterval)
+	defer pollTicker.Stop()
+
 	wg.Add(1)
-	dataChan := agent.Generator(ctx, wg, cfg, logger)
+	dataChan := agent.Generator(ctx, data, wg, cfg, logger)
 
 	for i := 0; i < cfg.RateLimit; i++ {
 		wg.Add(1)
 		go agent.Worker(ctx, wg, cfg, dataChan, logger)
 	}
+	for {
+		select {
 
-	<-ctx.Done()
-	logger.Info().Msg("Received signal to stop the program. Waiting for graceful shutdown...")
-	return nil
+		case <-ctx.Done():
+			logger.Info().Msg("Stopping generator")
+			return nil
+
+		case <-pollTicker.C:
+			m, err := agent.GetMetrics()
+			logger.Error().Err(err).Msg("debug get metrics")
+			fmt.Printf("deque's length %d\n", data.Len())
+			if err != nil {
+				logger.Error().Err(err).Msg("cannot get metrics")
+				continue
+			}
+			data.PushBack(m)
+		}
+	}
 }

@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/edwingeng/deque/v2"
 	"github.com/ospiem/mcollector/internal/agent/config"
 	"github.com/ospiem/mcollector/internal/models"
 	"github.com/rs/zerolog"
@@ -29,35 +30,28 @@ const counter = "counter"
 const cannotCreateRequest = "cannot create request"
 const retryAttempts = 3
 const repeatFactor = 2
-const workerPoolSizeFactor = 1
 
 var errRetryableHTTPStatusCode = errors.New("got retryable status code")
 
-func Generator(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, log zerolog.Logger) chan map[string]string {
+func Generator(ctx context.Context, data *deque.Deque[map[string]string], wg *sync.WaitGroup, cfg config.Config, log zerolog.Logger) chan map[string]string {
 	l := log.With().Str("func", "generator").Logger()
-	dataChan := make(chan map[string]string, workerPoolSizeFactor*cfg.RateLimit)
+	dataChan := make(chan map[string]string, cfg.RateLimit)
 	l.Debug().Msg("Hello from generator")
 
 	go func() {
 		defer close(dataChan)
 		defer wg.Done()
-		mTicker := time.NewTicker(cfg.PollInterval)
-		defer mTicker.Stop()
 
-		for range mTicker.C {
+		for {
 			select {
 			case <-ctx.Done():
 				l.Info().Msg("Stopping generator")
 				return
 			default:
 			}
-			m, err := GetMetrics()
-			l.Error().Err(err).Msg("debug get metrics")
-			if err != nil {
-				l.Error().Err(err).Msg("cannot get metrics")
-				continue
+			if !data.IsEmpty() {
+				dataChan <- data.PopFront()
 			}
-			dataChan <- m
 		}
 	}()
 
@@ -71,12 +65,14 @@ func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config,
 	reqTicker := time.NewTicker(cfg.ReportInterval)
 	defer reqTicker.Stop()
 
-	for metrics := range dataChan {
+	for {
 		select {
 		case <-ctx.Done():
 			l.Info().Msg("Stopping worker")
 			return
 		case <-reqTicker.C:
+
+			metrics := <-dataChan
 			var pollIncrement int64 = 1
 			client := &http.Client{}
 			var metricSlice []models.Metrics
