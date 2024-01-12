@@ -56,7 +56,7 @@ func (a *API) registerAPI() chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(compress.DecompressRequest(a.Log))
-	r.Use(hash.Check(a.Log, a.Cfg.Key))
+	r.Use(hash.HashVerification(a.Log, a.Cfg.Key))
 	r.Use(logger.RequestLogger(a.Log))
 	r.Use(compress.CompressResponse(a.Log))
 

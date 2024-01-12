@@ -13,10 +13,10 @@ import (
 
 const hashHeader = "HashSHA256"
 
-func Check(log zerolog.Logger, key string) func(next http.Handler) http.Handler {
+func HashVerification(log zerolog.Logger, key string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			l := log.With().Str("middleware", "Check").Logger()
+			l := log.With().Str("middleware", "HashVerification").Logger()
 
 			hash := r.Header.Get(hashHeader)
 			if hash == "" {
