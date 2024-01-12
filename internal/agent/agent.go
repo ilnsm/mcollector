@@ -33,7 +33,8 @@ const repeatFactor = 2
 
 var errRetryableHTTPStatusCode = errors.New("got retryable status code")
 
-func Generator(ctx context.Context, data *deque.Deque[map[string]string], wg *sync.WaitGroup, cfg config.Config, log zerolog.Logger) chan map[string]string {
+func Generator(ctx context.Context, data *deque.Deque[map[string]string], wg *sync.WaitGroup,
+	cfg config.Config, log zerolog.Logger) chan map[string]string {
 	l := log.With().Str("func", "generator").Logger()
 	dataChan := make(chan map[string]string, cfg.RateLimit)
 	l.Debug().Msg("Hello from generator")

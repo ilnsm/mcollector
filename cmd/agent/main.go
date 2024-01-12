@@ -65,7 +65,6 @@ func run(logger zerolog.Logger) error {
 	}
 	for {
 		select {
-
 		case <-ctx.Done():
 			logger.Info().Msg("Stopping generator")
 			return nil

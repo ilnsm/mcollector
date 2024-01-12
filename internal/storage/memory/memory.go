@@ -11,11 +11,11 @@ import (
 type MemStorage struct {
 	counter map[string]int64
 	gauge   map[string]float64
-	mux     sync.RWMutex
+	mux     *sync.RWMutex
 }
 
 func New() *MemStorage {
-	s := MemStorage{make(map[string]int64), make(map[string]float64), sync.RWMutex{}}
+	s := MemStorage{make(map[string]int64), make(map[string]float64), &sync.RWMutex{}}
 	return &s
 }
 
