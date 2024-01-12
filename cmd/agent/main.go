@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -18,13 +17,14 @@ import (
 const timeoutShutdown = 10 * time.Second
 
 func main() {
-	if err := run(); err != nil {
-		log.Fatal(err)
+	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+	if err := run(logger); err != nil {
+		logger.Fatal().Err(err)
 	}
-	log.Println("bye-bye")
+	logger.Info().Msg("Graceful shutdown completed successfully. All connections closed, and resources released.")
 }
 
-func run() error {
+func run(logger zerolog.Logger) error {
 	ctx, cancelCtx := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancelCtx()
 
@@ -33,8 +33,7 @@ func run() error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
-	tools.SetLogLevel(cfg.LogLevel)
+	tools.SetGlobalLogLevel(cfg.LogLevel)
 	logger.Info().Msgf("Start server\nPush to %s\nCollecting metrics every %v\n"+
 		"Send metrics every %v\n", cfg.Endpoint, cfg.PollInterval, cfg.ReportInterval)
 
@@ -61,5 +60,6 @@ func run() error {
 	}
 
 	<-ctx.Done()
+	logger.Info().Msg("Received signal to stop the program. Waiting for graceful shutdown...")
 	return nil
 }
