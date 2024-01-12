@@ -53,11 +53,11 @@ func run() error {
 	}()
 
 	wg.Add(1)
-	ch := agent.Generator(ctx, wg, cfg, logger)
+	dataChan := agent.Generator(ctx, wg, cfg, logger)
 
 	for i := 0; i < cfg.RateLimit; i++ {
 		wg.Add(1)
-		go agent.Worker(ctx, wg, cfg, ch, logger)
+		go agent.Worker(ctx, wg, cfg, dataChan, logger)
 	}
 
 	<-ctx.Done()
