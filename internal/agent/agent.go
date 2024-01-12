@@ -35,11 +35,11 @@ var errRetryableHTTPStatusCode = errors.New("got retryable status code")
 
 func Generator(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, log zerolog.Logger) chan map[string]string {
 	l := log.With().Str("func", "generator").Logger()
-	mCHan := make(chan map[string]string, workerPoolSizeFactor*cfg.RateLimit)
+	dataChan := make(chan map[string]string, workerPoolSizeFactor*cfg.RateLimit)
 	l.Debug().Msg("Hello from generator")
 
 	go func() {
-		defer close(mCHan)
+		defer close(dataChan)
 		defer wg.Done()
 		mTicker := time.NewTicker(cfg.PollInterval)
 		defer mTicker.Stop()
@@ -56,21 +56,21 @@ func Generator(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, log z
 				l.Error().Err(err).Msg("cannot get metrics")
 				continue
 			}
-			mCHan <- m
+			dataChan <- m
 		}
 	}()
 
-	return mCHan
+	return dataChan
 }
 
 func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config,
-	mCHan chan map[string]string, log zerolog.Logger) {
+	dataChan chan map[string]string, log zerolog.Logger) {
 	defer wg.Done()
 	l := log.With().Str("func", "worker").Logger()
 	reqTicker := time.NewTicker(cfg.ReportInterval)
 	defer reqTicker.Stop()
 
-	for metrics := range mCHan {
+	for metrics := range dataChan {
 		select {
 		case <-ctx.Done():
 			l.Info().Msg("Stopping worker")
