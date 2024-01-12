@@ -4,6 +4,7 @@ go 1.21.3
 
 require (
 	github.com/caarlos0/env/v9 v9.0.0
+	github.com/edwingeng/deque/v2 v2.1.1
 	github.com/go-chi/chi/v5 v5.0.11
 	github.com/golang-migrate/migrate/v4 v4.17.0
 	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
