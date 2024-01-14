@@ -21,32 +21,32 @@ func New() *MemStorage {
 
 func (mem *MemStorage) InsertGauge(ctx context.Context, k string, v float64) error {
 	mem.mux.Lock()
+	defer mem.mux.Unlock()
 	mem.gauge[k] = v
-	mem.mux.Unlock()
 	return nil
 }
 func (mem *MemStorage) InsertCounter(ctx context.Context, k string, v int64) error {
 	mem.mux.Lock()
+	defer mem.mux.Unlock()
 	mem.counter[k] += v
-	mem.mux.Unlock()
 	return nil
 }
 
 func (mem *MemStorage) SelectGauge(ctx context.Context, k string) (float64, error) {
 	mem.mux.RLock()
+	defer mem.mux.RUnlock()
 	if v, ok := mem.gauge[k]; ok {
 		return v, nil
 	}
-	mem.mux.RUnlock()
 	return 0, errors.New("gauge does not exist")
 }
 
 func (mem *MemStorage) SelectCounter(ctx context.Context, k string) (int64, error) {
 	mem.mux.RLock()
+	defer mem.mux.RUnlock()
 	if v, ok := mem.counter[k]; ok {
 		return v, nil
 	}
-	mem.mux.RUnlock()
 	return 0, errors.New("counter does not exist")
 }
 
