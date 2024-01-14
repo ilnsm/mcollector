@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/edwingeng/deque/v2"
 	"github.com/ospiem/mcollector/internal/agent"
 	"github.com/ospiem/mcollector/internal/agent/config"
 	"github.com/ospiem/mcollector/internal/tools"
@@ -52,32 +51,39 @@ func run(logger zerolog.Logger) error {
 		wg.Wait()
 	}()
 
-	data := deque.NewDeque[map[string]string]()
-	pollTicker := time.NewTicker(cfg.PollInterval)
-	defer pollTicker.Stop()
+	mc := agent.NewMetricsCollection()
+	collectTicker := time.NewTicker(cfg.PollInterval)
+	sendTicker := time.NewTicker(cfg.ReportInterval)
+	defer collectTicker.Stop()
+	defer sendTicker.Stop()
 
-	wg.Add(1)
-	dataChan := agent.Generator(ctx, data, wg, cfg, logger)
+	jobs := make(chan map[string]string, cfg.RateLimit)
 
 	for i := 0; i < cfg.RateLimit; i++ {
 		wg.Add(1)
-		go agent.Worker(ctx, wg, cfg, dataChan, logger)
+		go agent.Worker(ctx, wg, cfg, jobs, logger)
 	}
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Info().Msg("Stopping generator")
 			return nil
-
-		case <-pollTicker.C:
-			m, err := agent.GetMetrics()
-			logger.Error().Err(err).Msg("debug get metrics")
-			fmt.Printf("deque's length %d\n", data.Len())
+		case <-collectTicker.C:
+			metrics, err := agent.GetMetrics()
 			if err != nil {
 				logger.Error().Err(err).Msg("cannot get metrics")
 				continue
 			}
-			data.PushBack(m)
+			mc.Push(metrics)
+		case <-sendTicker.C:
+			metrics, ok := mc.Pop()
+			if !ok {
+				continue
+			}
+			select {
+			case jobs <- metrics:
+			default:
+				logger.Error().Msg("failed to send another job to workers, all workers are busy")
+			}
 		}
 	}
 }

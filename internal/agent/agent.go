@@ -17,7 +17,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/edwingeng/deque/v2"
 	"github.com/ospiem/mcollector/internal/agent/config"
 	"github.com/ospiem/mcollector/internal/models"
 	"github.com/rs/zerolog"
@@ -33,30 +32,33 @@ const repeatFactor = 2
 
 var errRetryableHTTPStatusCode = errors.New("got retryable status code")
 
-func Generator(ctx context.Context, data *deque.Deque[map[string]string], wg *sync.WaitGroup,
-	cfg config.Config, log zerolog.Logger) chan map[string]string {
-	l := log.With().Str("func", "generator").Logger()
-	dataChan := make(chan map[string]string, cfg.RateLimit)
-	l.Debug().Msg("Hello from generator")
+type MetricsCollection struct {
+	mux  *sync.Mutex
+	coll []map[string]string
+}
 
-	go func() {
-		defer close(dataChan)
-		defer wg.Done()
+func NewMetricsCollection() *MetricsCollection {
+	return &MetricsCollection{
+		coll: make([]map[string]string, 0),
+		mux:  &sync.Mutex{},
+	}
+}
 
-		for {
-			select {
-			case <-ctx.Done():
-				l.Info().Msg("Stopping generator")
-				return
-			default:
-			}
-			if !data.IsEmpty() {
-				dataChan <- data.PopFront()
-			}
-		}
-	}()
+func (mc *MetricsCollection) Push(metrics map[string]string) {
+	mc.mux.Lock()
+	defer mc.mux.Unlock()
+	mc.coll = append(mc.coll, metrics)
+}
 
-	return dataChan
+func (mc *MetricsCollection) Pop() (map[string]string, bool) {
+	mc.mux.Lock()
+	defer mc.mux.Unlock()
+	if len(mc.coll) == 0 {
+		return nil, false
+	}
+	m := mc.coll[0]
+	mc.coll = mc.coll[1:]
+	return m, true
 }
 
 func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config,
