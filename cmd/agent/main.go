@@ -75,10 +75,7 @@ func run(logger zerolog.Logger) error {
 			}
 			mc.Push(metrics)
 		case <-sendTicker.C:
-			metrics, ok := mc.Pop()
-			if !ok {
-				continue
-			}
+			metrics := mc.Pop()
 			select {
 			case jobs <- metrics:
 			default:
