@@ -34,12 +34,12 @@ var errRetryableHTTPStatusCode = errors.New("got retryable status code")
 
 type MetricsCollection struct {
 	mux  *sync.Mutex
-	coll []map[string]string
+	coll map[string]string
 }
 
 func NewMetricsCollection() *MetricsCollection {
 	return &MetricsCollection{
-		coll: make([]map[string]string, 0),
+		coll: make(map[string]string),
 		mux:  &sync.Mutex{},
 	}
 }
@@ -47,18 +47,13 @@ func NewMetricsCollection() *MetricsCollection {
 func (mc *MetricsCollection) Push(metrics map[string]string) {
 	mc.mux.Lock()
 	defer mc.mux.Unlock()
-	mc.coll = append(mc.coll, metrics)
+	mc.coll = metrics
 }
 
-func (mc *MetricsCollection) Pop() (map[string]string, bool) {
+func (mc *MetricsCollection) Pop() map[string]string {
 	mc.mux.Lock()
 	defer mc.mux.Unlock()
-	if len(mc.coll) == 0 {
-		return nil, false
-	}
-	m := mc.coll[0]
-	mc.coll = mc.coll[1:]
-	return m, true
+	return mc.coll
 }
 
 func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config,
