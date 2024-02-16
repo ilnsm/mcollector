@@ -24,7 +24,7 @@ test: server agent postgres
 
 .PHONY: postgres
 postgres:
-	@docker compose up -d
+	@docker compose up -d postgres
 
 .PHONY: lint
 lint: _golangci-lint-rm-unformatted-report
@@ -39,7 +39,7 @@ _golangci-lint-run: _golangci-lint-reports-mkdir
     -v $(shell pwd):/app \
     -v $(GOLANGCI_LINT_CACHE):/root/.cache \
     -w /app \
-    golangci/golangci-lint:v1.55.2 \
+    golangci/golangci-lint:v1.56.2 \
         golangci-lint run \
             -c .golangci.yml \
 	> ./golangci-lint/report-unformatted.json

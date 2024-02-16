@@ -16,6 +16,7 @@ cmd/agent/main
 cmd/agent/agent
 cmd/server/main
 cmd/server/server
+cmd/metricstest
 
 # Dependency directories (remove the comment below to include it)
 vendor/
@@ -26,3 +27,4 @@ vendor/
 golangci-lint/
 test.result
 pgDATA/
+.DS_Store

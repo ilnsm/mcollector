@@ -1,7 +1,7 @@
 version: "3.9"
 services:
   postgres:
-    container_name: postgres
+    container_name: mcollector-postgres
     image: postgres:16.1-alpine3.19
     environment:
       POSTGRES_DB: "metrics"
