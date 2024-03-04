@@ -1,15 +1,23 @@
 package transport
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
+	mock_transport "github.com/ospiem/mcollector/internal/mock"
 	memorystorage "github.com/ospiem/mcollector/internal/storage/memory"
+	"go.uber.org/mock/gomock"
 
 	"github.com/ospiem/mcollector/internal/server/config"
 	"github.com/rs/zerolog"
 )
+
+const gauge = "gauge"
+const counter = "counter"
 
 func TestUpdateTheMetric(t *testing.T) {
 	// Create a mock API instance with a mock storage
@@ -68,6 +76,80 @@ func TestUpdateTheMetric(t *testing.T) {
 			// Check the response status code
 			if w.Code != tt.statusCode {
 				t.Errorf("Expected status code %d, got %d", tt.statusCode, w.Code)
+			}
+		})
+	}
+}
+
+func TestGetTheMetric(t *testing.T) {
+	mockCtl := gomock.NewController(t)
+	defer mockCtl.Finish()
+
+	ctx := context.Background()
+	defer ctx.Done()
+	mockStorage := mock_transport.NewMockStorage(mockCtl)
+
+	type testCase struct {
+		setup      func(*testCase)
+		storage    *mock_transport.MockStorage
+		mType      string
+		mName      string
+		wantBody   string
+		wantStatus int
+	}
+
+	tests := []struct {
+		name string
+		tc   testCase
+	}{
+		{
+			name: "Positive test with gauge 1",
+			tc: testCase{
+				mType:      gauge,
+				mName:      "test_gauge",
+				wantBody:   "112.5",
+				wantStatus: 200,
+				storage:    mockStorage,
+				setup: func(tc *testCase) {
+					v, _ := strconv.ParseFloat(tc.wantBody, 64)
+					tc.storage.EXPECT().SelectGauge(ctx, tc.mName).Return(v, nil).Times(1)
+				},
+			},
+		},
+		{
+			name: "Positive test with counter 1",
+			tc: testCase{
+				mType:      gauge,
+				mName:      "test_counter",
+				wantBody:   "1982",
+				wantStatus: 200,
+				storage:    mockStorage,
+				setup: func(tc *testCase) {
+					v, _ := strconv.ParseInt(tc.wantBody, 10, 64)
+					tc.storage.EXPECT().SelectCounter(ctx, tc.mName).Return(v, nil).Times(1)
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+
+		t.Run(test.name, func(t *testing.T) {
+			uri := fmt.Sprintf("/value/%s/%s", test.tc.mType, test.tc.mName)
+			request := httptest.NewRequest(http.MethodGet, uri, nil)
+			w := httptest.NewRecorder()
+
+			test.tc.setup(&test.tc)
+			a := &API{Storage: test.tc.storage, Log: zerolog.Logger{}}
+			handler := GetTheMetric(a)
+			handler(w, request)
+
+			if status := w.Code; status != test.tc.wantStatus {
+				t.Errorf("handler returned wrong status code: got %v want %v", status, test.tc.wantStatus)
+			}
+
+			if body := w.Body.String(); body != test.tc.wantBody {
+				t.Errorf("handler returned wrong body: got %v want %v", body, test.tc.wantBody)
 			}
 		})
 	}
