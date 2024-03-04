@@ -17,6 +17,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+//go:generate mockgen -destination=../../mock/mock_storage.go  -source=server.go Storage
 type Storage interface {
 	InsertGauge(ctx context.Context, k string, v float64) error
 	InsertCounter(ctx context.Context, k string, v int64) error
