@@ -58,4 +58,4 @@ golangci-lint-clean:
 
 .PHONY:
 truncate:
-	@docker exec postgres psql -U mcollector -d metrics -c 'truncate table counters, gauges;'
+	@docker exec mcollector-postgres psql -U mcollector -d metrics -c 'truncate table counters, gauges;'
