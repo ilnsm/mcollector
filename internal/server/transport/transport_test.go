@@ -1,13 +1,14 @@
 package transport
 
 import (
+	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	mock_transport "github.com/ospiem/mcollector/internal/mock"
 	"github.com/ospiem/mcollector/internal/models"
 	"go.uber.org/mock/gomock"
@@ -124,9 +125,14 @@ func TestGetTheMetric(t *testing.T) {
 	for _, test := range tests {
 
 		t.Run(test.name, func(t *testing.T) {
-			uri := fmt.Sprintf("/value/%s/%s", test.tc.mType, test.tc.mName)
-			request := httptest.NewRequest(http.MethodGet, uri, nil)
 			w := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodGet, "/value/{mType}/{mName}", nil)
+
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("mType", test.tc.mType)
+			rctx.URLParams.Add("mName", test.tc.mName)
+
+			request = request.WithContext(context.WithValue(request.Context(), chi.RouteCtxKey, rctx))
 
 			test.tc.storage = mock_transport.NewMockStorage(mockCtl)
 			test.tc.setup(&test.tc)
