@@ -1,0 +1,46 @@
+            <!DOCTYPE html>
+            <html>
+            <head>
+            
+            	<title>Metric's' Data</title>
+            
+            </head>
+            <body>
+            
+            	   <h1>Data</h1>
+            	   <ul>
+            	   
+            	       <li>couner_1: 534</li>
+            	   
+            	       <li>gauge_1: 54.12</li>
+            	   
+            	   </ul>
+            
+            
+            </body>
+            </html>
+             want 
+            <!DOCTYPE html>
+            <html>
+            <head>
+            
+            	<title>Metric's' Data</title>
+            
+            </head>
+            <body>
+            
+            	   <h1>Data</h1>
+            	   <ul>
+            	   
+            	       <li>counter_1: 534</li>
+            	   
+            	       <li>gauge_1: 54.12</li>
+            	   
+            	   </ul>
+            
+            
+            </body>
+            </html>
+FAIL
+FAIL	github.com/ospiem/mcollector/internal/server/transport	0.120s
+FAIL
