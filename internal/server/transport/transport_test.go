@@ -14,6 +14,115 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+var errNotFound = errors.New("value not found")
+
+func TestUpdateTheMetric(t *testing.T) {
+	mockCtl := gomock.NewController(t)
+	defer mockCtl.Finish()
+
+	type testCase struct {
+		setup      func(*testCase)
+		storage    *mock_transport.MockStorage
+		mType      string
+		mName      string
+		mValue     string
+		wantStatus int
+	}
+
+	tests := []struct {
+		name string
+		tc   testCase
+	}{
+		{
+			name: "Positive test with gauge 1",
+			tc: testCase{
+				mType:      models.Gauge,
+				mName:      "test_gauge",
+				mValue:     "39.2",
+				wantStatus: http.StatusOK,
+				setup: func(tc *testCase) {
+					v, _ := strconv.ParseFloat(tc.mValue, 64)
+					tc.storage.EXPECT().InsertGauge(gomock.Any(), tc.mName, v).Return(nil).Times(1)
+				},
+			},
+		},
+		{
+			name: "Positive test with counter 1",
+			tc: testCase{
+				mType:      models.Counter,
+				mName:      "test_counter",
+				mValue:     "190",
+				wantStatus: http.StatusOK,
+				setup: func(tc *testCase) {
+					v, _ := strconv.ParseInt(tc.mValue, 10, 64)
+					tc.storage.EXPECT().InsertCounter(gomock.Any(), tc.mName, v).Return(nil).Times(1)
+				},
+			},
+		},
+		{
+			name: "Negative test with gauge 1",
+			tc: testCase{
+				mType:      models.Gauge,
+				mName:      "test_gauge",
+				mValue:     "dfe",
+				wantStatus: http.StatusBadRequest,
+				setup: func(tc *testCase) {
+					tc.storage.EXPECT().InsertGauge(gomock.Any(), tc.mName, float64(0)).Return(nil).Times(1)
+				},
+			},
+		},
+		{
+			name: "Negative test with counter 1",
+			tc: testCase{
+				mType:      models.Counter,
+				mName:      "test_counter",
+				mValue:     "190.134",
+				wantStatus: http.StatusBadRequest,
+				setup: func(tc *testCase) {
+					tc.storage.EXPECT().InsertCounter(gomock.Any(), tc.mName, int64(0)).Return(nil).Times(1)
+				},
+			},
+		},
+
+		{
+			name: "Invalid metric type",
+			tc: testCase{
+				mType:      "ggauge",
+				mName:      "test_gauge",
+				mValue:     "10.22",
+				wantStatus: http.StatusBadRequest,
+				setup: func(tc *testCase) {
+					tc.storage.EXPECT().InsertGauge(gomock.Any(), tc.mName, float64(0)).Return(nil).Times(0)
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+
+		t.Run(test.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodPost, "/update/{mType}/{mName}/{mValue}", nil)
+
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("mType", test.tc.mType)
+			rctx.URLParams.Add("mName", test.tc.mName)
+			rctx.URLParams.Add("mValue", test.tc.mValue)
+
+			request = request.WithContext(context.WithValue(request.Context(), chi.RouteCtxKey, rctx))
+
+			test.tc.storage = mock_transport.NewMockStorage(mockCtl)
+			test.tc.setup(&test.tc)
+			a := &API{Storage: test.tc.storage}
+			handler := UpdateTheMetric(a)
+			handler.ServeHTTP(w, request)
+
+			if status := w.Code; status != test.tc.wantStatus {
+				t.Errorf("handler returned wrong status code: got %v want %v", status, test.tc.wantStatus)
+			}
+		})
+	}
+}
+
 func TestGetTheMetric(t *testing.T) {
 	mockCtl := gomock.NewController(t)
 	defer mockCtl.Finish()
@@ -26,7 +135,6 @@ func TestGetTheMetric(t *testing.T) {
 		wantBody   string
 		wantStatus int
 	}
-	errNotFound := errors.New("value not found")
 
 	tests := []struct {
 		name string
