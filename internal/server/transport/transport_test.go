@@ -26,6 +26,7 @@ func TestGetTheMetric(t *testing.T) {
 		wantBody   string
 		wantStatus int
 	}
+	errNotFound := errors.New("value not found")
 
 	tests := []struct {
 		name string
@@ -54,6 +55,42 @@ func TestGetTheMetric(t *testing.T) {
 				setup: func(tc *testCase) {
 					v, _ := strconv.ParseInt(tc.wantBody, 10, 64)
 					tc.storage.EXPECT().SelectCounter(gomock.Any(), tc.mName).Return(v, nil).Times(1)
+				},
+			},
+		},
+		{
+			name: "Negative test with gauge 1",
+			tc: testCase{
+				mType:      models.Gauge,
+				mName:      "gauge2",
+				wantBody:   "404 page not found\n",
+				wantStatus: http.StatusNotFound,
+				setup: func(tc *testCase) {
+					tc.storage.EXPECT().SelectGauge(gomock.Any(), tc.mName).Return(float64(0), errNotFound).Times(1)
+				},
+			},
+		},
+		{
+			name: "Negative test with counter 1",
+			tc: testCase{
+				mType:      models.Counter,
+				mName:      "test_counter",
+				wantBody:   "404 page not found\n",
+				wantStatus: http.StatusNotFound,
+				setup: func(tc *testCase) {
+					tc.storage.EXPECT().SelectCounter(gomock.Any(), tc.mName).Return(int64(0), errNotFound).Times(1)
+				},
+			},
+		},
+		{
+			name: "Invalid metric type",
+			tc: testCase{
+				mType:      "ccounter",
+				mName:      "test_counter",
+				wantBody:   "",
+				wantStatus: http.StatusBadRequest,
+				setup: func(tc *testCase) {
+					tc.storage.EXPECT().SelectCounter(gomock.Any(), tc.mName).Return(int64(0), errNotFound).Times(0)
 				},
 			},
 		},
