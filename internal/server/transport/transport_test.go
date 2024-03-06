@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -284,4 +285,84 @@ func TestPingDB(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestListAllMetrics(t *testing.T) {
+	mockCtl := gomock.NewController(t)
+	defer mockCtl.Finish()
+
+	type testCase struct {
+		wantBody        string
+		wantStatus      int
+		setup           func(*testCase)
+		storage         *mock_transport.MockStorage
+		wantContentType string
+	}
+
+	tests := []struct {
+		name string
+		tc   testCase
+	}{
+		{
+			name: "No metrics",
+			tc: testCase{
+				wantBody:        "\n<!DOCTYPE html>\n<html>\n<head>\n\n\t<title>Metric's' Data</title>\n\n</head>\n<body>\n\n\t   <h1>Data</h1>\n\t   <ul>\n\t   \n\t   </ul>\n\n\n</body>\n</html>\n",
+				wantStatus:      http.StatusOK,
+				wantContentType: "text/html",
+				setup: func(tc *testCase) {
+					gauges := make(map[string]float64)
+					counters := make(map[string]int64)
+					tc.storage.EXPECT().GetGauges(gomock.Any()).Return(gauges, nil).Times(1)
+					tc.storage.EXPECT().GetCounters(gomock.Any()).Return(counters, nil).Times(1)
+				},
+			},
+		},
+		{
+			name: "Positive test",
+			tc: testCase{
+				wantBody:        "\n<!DOCTYPE html>\n<html>\n<head>\n\n\t<title>Metric's' Data</title>\n\n</head>\n<body>\n\n\t   <h1>Data</h1>\n\t   <ul>\n\t   \n\t       <li>couner_1: 534</li>\n\t   \n\t       <li>couner_2: 11</li>\n\t   \n\t       <li>gauge_1: 54.12</li>\n\t   \n\t       <li>gauge_2: 1092.2</li>\n\t   \n\t   </ul>\n\n\n</body>\n</html>",
+				wantStatus:      http.StatusOK,
+				wantContentType: "text/html",
+				setup: func(tc *testCase) {
+					gauges := make(map[string]float64, 2)
+					gauges["gauge_1"] = 54.12
+					gauges["gauge_2"] = 1092.2
+					//
+					counters := make(map[string]int64, 2)
+					counters["couner_1"] = 534
+					counters["couner_2"] = 11
+
+					tc.storage.EXPECT().GetGauges(gomock.Any()).Return(gauges, nil).Times(1)
+					tc.storage.EXPECT().GetCounters(gomock.Any()).Return(counters, nil).Times(1)
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodGet, "/", nil)
+
+			test.tc.storage = mock_transport.NewMockStorage(mockCtl)
+			test.tc.setup(&test.tc)
+
+			a := &API{Storage: test.tc.storage}
+			handler := ListAllMetrics(a)
+			handler.ServeHTTP(w, request)
+
+			if ct := w.Header().Get("Content-Type"); ct != test.tc.wantContentType {
+				t.Errorf("handler returned wrong content-type: got %v\n want %v", ct, test.tc.wantContentType)
+			}
+			if body := normalizeHTML(w.Body.String()); body != normalizeHTML(test.tc.wantBody) {
+				t.Errorf("handler returned wrong body: got %v want %v", body, test.tc.wantBody)
+			}
+		})
+	}
+}
+
+func normalizeHTML(html string) string {
+	html = strings.TrimSpace(html)
+	html = strings.ReplaceAll(html, "\n", "")
+	html = strings.ReplaceAll(html, "\t", "")
+	return html
 }
