@@ -36,6 +36,8 @@ const contentType = "Content-Type"
 const applicationJSON = "application/json"
 const internalServerError = "Internal server error"
 const sending200OK = "sending HTTP 200 response"
+const invalidContentType = "invalid content-type"
+const invalitContentTypeNotJSON = "Invalid Content-Type, expected application/json"
 
 func UpdateTheMetric(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -159,6 +161,11 @@ func UpdateTheMetricWithJSON(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := a.Log.With().Str("func", "UpdateTheMetricWithJSON").Logger()
+		if r.Header.Get(contentType) != applicationJSON {
+			http.Error(w, invalitContentTypeNotJSON, http.StatusBadRequest)
+			logger.Debug().Msg(invalidContentType)
+			return
+		}
 		var m models.Metrics
 		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -172,7 +179,7 @@ func UpdateTheMetricWithJSON(a *API) http.HandlerFunc {
 				http.Error(w, internalServerError, http.StatusInternalServerError)
 				return
 			}
-
+			*m.Value, err = a.Storage.SelectGauge(ctx, m.ID)
 			w.Header().Set(contentType, applicationJSON)
 			enc := json.NewEncoder(w)
 			if err = enc.Encode(m); err != nil {
