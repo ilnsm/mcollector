@@ -390,16 +390,16 @@ func TestUpdateTheMetricWithJSON(t *testing.T) {
 		{
 			name: "Positive test gauge",
 			tc: testCase{
-				sendBody: `{"id": "gaugeNameJSON",
+				sendBody: `{"id": "gauge_bar",
 					"type": "gauge",
 					"value": 38.988}`,
-				wantBody: `{"id": "gaugeNameJSON",
+				wantBody: `{"id": "gauge_bar",
 					"type": "gauge",
 					"value": 38.988}`,
 				wantStatus: http.StatusOK,
 				setup: func(tc *testCase) {
-					tc.storage.EXPECT().InsertGauge(gomock.Any(), "gaugeNameJSON", 38.988).Times(1)
-					tc.storage.EXPECT().SelectGauge(gomock.Any(), "gaugeNameJSON").Return(38.988, nil).Times(1)
+					tc.storage.EXPECT().InsertGauge(gomock.Any(), "gauge_bar", 38.988).Times(1)
+					tc.storage.EXPECT().SelectGauge(gomock.Any(), "gauge_bar").Return(38.988, nil).Times(1)
 				},
 				wantContentType: applicationJSON,
 				sendContentType: applicationJSON,
@@ -426,15 +426,15 @@ func TestUpdateTheMetricWithJSON(t *testing.T) {
 		{
 			name: "Content type test",
 			tc: testCase{
-				sendBody: `{"id": "gaugeNameJSON",
+				sendBody: `{"id": "gauge_bar",
 					"type": "gauge",
 					"value": 38.988}`,
-				wantBody: `{"id": "gaugeNameJSON",
+				wantBody: `{"id": "gauge_bar",
 					"type": "gauge",
 					"value": 38.988}`,
 				wantStatus: http.StatusBadRequest,
 				setup: func(tc *testCase) {
-					tc.storage.EXPECT().InsertGauge(gomock.Any(), "gaugeNameJSON", 38.988).Times(0)
+					tc.storage.EXPECT().InsertGauge(gomock.Any(), "gauge_bar", 38.988).Times(0)
 				},
 				wantContentType: "text/plain; charset=utf-8",
 				sendContentType: "bad-content-type",
@@ -479,10 +479,9 @@ func TestUpdateTheMetricWithJSON(t *testing.T) {
 
 			if ct := w.Header().Get("Content-Type"); ct != test.tc.wantContentType {
 				t.Errorf("handler returned wrong content-type: got %v\n want %v", ct, test.tc.wantContentType)
-
-				if code := w.Code; code != test.tc.wantStatus {
-					t.Errorf("handler returned wrong status code: got %v want %v", code, test.tc.wantStatus)
-				}
+			}
+			if code := w.Code; code != test.tc.wantStatus {
+				t.Errorf("handler returned wrong status code: got %v want %v", code, test.tc.wantStatus)
 			}
 		})
 	}
@@ -509,15 +508,15 @@ func TestGetTheMetricWithJSON(t *testing.T) {
 		{
 			name: "Positive test gauge",
 			tc: testCase{
-				sendBody: `{"id": "gaugeNameJSON",
+				sendBody: `{"id": "gauge_bar",
 					"type": "gauge",
 					"value": 38.988}`,
-				wantBody: `{"id": "gaugeNameJSON",
+				wantBody: `{"id": "gauge_bar",
 					"type": "gauge",
 					"value": 38.988}`,
 				wantStatus: http.StatusOK,
 				setup: func(tc *testCase) {
-					tc.storage.EXPECT().SelectGauge(gomock.Any(), "gaugeNameJSON").Return(38.988, nil).Times(1)
+					tc.storage.EXPECT().SelectGauge(gomock.Any(), "gauge_bar").Return(38.988, nil).Times(1)
 				},
 				wantContentType: applicationJSON,
 				sendContentType: applicationJSON,
@@ -543,15 +542,15 @@ func TestGetTheMetricWithJSON(t *testing.T) {
 		{
 			name: "Content type test",
 			tc: testCase{
-				sendBody: `{"id": "gaugeNameJSON",
+				sendBody: `{"id": "gauge_bar",
 					"type": "gauge",
 					"value": 38.988}`,
-				wantBody: `{"id": "gaugeNameJSON",
+				wantBody: `{"id": "gauge_bar",
 					"type": "gauge",
 					"value": 38.988}`,
 				wantStatus: http.StatusBadRequest,
 				setup: func(tc *testCase) {
-					tc.storage.EXPECT().SelectGauge(gomock.Any(), "gaugeNameJSON").Return(38.988, nil).Times(0)
+					tc.storage.EXPECT().SelectGauge(gomock.Any(), "gauge_bar").Return(38.988, nil).Times(0)
 				},
 				wantContentType: "text/plain; charset=utf-8",
 				sendContentType: "bad-content-type",
@@ -597,9 +596,104 @@ func TestGetTheMetricWithJSON(t *testing.T) {
 			if ct := w.Header().Get("Content-Type"); ct != test.tc.wantContentType {
 				t.Errorf("handler returned wrong content-type: got %v\n want %v", ct, test.tc.wantContentType)
 
-				if code := w.Code; code != test.tc.wantStatus {
-					t.Errorf("handler returned wrong status code: got %v want %v", code, test.tc.wantStatus)
-				}
+			}
+			if code := w.Code; code != test.tc.wantStatus {
+				t.Errorf("handler returned wrong status code: got %v want %v", code, test.tc.wantStatus)
+			}
+		})
+	}
+}
+
+func TestUpdateSliceOfMetrics(t *testing.T) {
+	mockCtl := gomock.NewController(t)
+	defer mockCtl.Finish()
+
+	type testCase struct {
+		sendBody        string
+		wantBody        string
+		wantStatus      int
+		setup           func(*testCase)
+		storage         *mock_transport.MockStorage
+		sendContentType string
+	}
+
+	tests := []struct {
+		name string
+		tc   testCase
+	}{
+		{
+			name: "Positive test",
+			tc: testCase{
+				sendBody: `[{"id":"gauge_bar","type":"gauge","value":138.988},
+  							{"id":"counter_foo","type":"counter","delta":113}]`,
+				wantBody:   "",
+				wantStatus: http.StatusOK,
+				setup: func(tc *testCase) {
+					tc.storage.EXPECT().InsertBatch(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				},
+				sendContentType: applicationJSON,
+			},
+		},
+		{
+			name: "Wrong gauge type",
+			tc: testCase{
+				sendBody: `[{"id":"gauge_bar","type":"wrong","value":138.988},
+  							{"id":"counter_foo","type":"counter","delta":113}]`,
+				wantBody:   "",
+				wantStatus: http.StatusBadRequest,
+				setup: func(tc *testCase) {
+					tc.storage.EXPECT().InsertBatch(gomock.Any(), gomock.Any()).Return(nil).Times(0)
+				},
+				sendContentType: applicationJSON,
+			},
+		},
+		{
+			name: "Wrong counter type",
+			tc: testCase{
+				sendBody: `[{"id":"gauge_bar","type":"gauge","value":138.988},
+  							{"id":"counter_foo","type":"wrong","delta":113}]`,
+				wantBody:   "",
+				wantStatus: http.StatusBadRequest,
+				setup: func(tc *testCase) {
+					tc.storage.EXPECT().InsertBatch(gomock.Any(), gomock.Any()).Return(nil).Times(0)
+				},
+				sendContentType: applicationJSON,
+			},
+		},
+		{
+			name: "Content type test",
+			tc: testCase{
+				sendBody: `[{"id":"gauge_bar","type":"gauge","value":138.988},
+  							{"id":"counter_foo","type":"wrong","delta":113}]`,
+				wantBody:   "",
+				wantStatus: http.StatusBadRequest,
+				setup: func(tc *testCase) {
+					tc.storage.EXPECT().InsertBatch(gomock.Any(), gomock.Any()).Return(nil).Times(0)
+				},
+				sendContentType: "bad-content-type",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.tc.storage = mock_transport.NewMockStorage(mockCtl)
+			test.tc.setup(&test.tc)
+			a := &API{Storage: test.tc.storage}
+
+			w := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodPost, "/", nil)
+
+			reader := strings.NewReader(test.tc.sendBody)
+			body := io.NopCloser(reader)
+			request.Body = body
+			request.Header.Set(contentType, test.tc.sendContentType)
+			handler := UpdateSliceOfMetrics(a)
+
+			handler.ServeHTTP(w, request)
+
+			if code := w.Code; code != test.tc.wantStatus {
+				t.Errorf("handler returned wrong status code: got %v want %v", code, test.tc.wantStatus)
 			}
 		})
 	}
