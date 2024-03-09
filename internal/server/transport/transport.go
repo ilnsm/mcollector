@@ -2,6 +2,7 @@ package transport
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -279,11 +280,23 @@ func UpdateSliceOfMetrics(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := a.Log.With().Str("func", "UpdateSliceOfMetrics").Logger()
+		if r.Header.Get(contentType) != applicationJSON {
+			http.Error(w, invalitContentTypeNotJSON, http.StatusBadRequest)
+			logger.Debug().Msg(invalidContentType)
+			return
+		}
 		var metrics []models.Metrics
 		if err := json.NewDecoder(r.Body).Decode(&metrics); err != nil {
 			logger.Error().Err(err).Msg("cannot decode slice of metrics")
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
+		}
+		for _, m := range metrics {
+			if !(m.MType == models.Gauge || m.MType == models.Counter) {
+				fmt.Println(m.MType)
+				http.Error(w, "Invalid metric type", http.StatusBadRequest)
+				return
+			}
 		}
 		if err := a.Storage.InsertBatch(ctx, metrics); err != nil {
 			logger.Error().Err(err).Msg("cannot insert batch in handler")
