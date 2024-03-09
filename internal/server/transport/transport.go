@@ -222,6 +222,11 @@ func GetTheMetricWithJSON(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := a.Log.With().Str("func", "GetTheMetricWithJSON").Logger()
+		if r.Header.Get(contentType) != applicationJSON {
+			http.Error(w, invalitContentTypeNotJSON, http.StatusBadRequest)
+			logger.Debug().Msg(invalidContentType)
+			return
+		}
 		var m models.Metrics
 		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 			logger.Error().Err(err).Msg("cannot decode metric")
