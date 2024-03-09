@@ -101,7 +101,6 @@ func TestUpdateTheMetric(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-
 		t.Run(test.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
 			request := httptest.NewRequest(http.MethodPost, "/update/{mType}/{mName}/{mValue}", nil)
@@ -208,7 +207,6 @@ func TestGetTheMetric(t *testing.T) {
 	}
 
 	for _, test := range tests {
-
 		t.Run(test.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
 			request := httptest.NewRequest(http.MethodGet, "/value/{mType}/{mName}", nil)
@@ -237,7 +235,6 @@ func TestGetTheMetric(t *testing.T) {
 }
 
 func TestPingDB(t *testing.T) {
-
 	mockCtl := gomock.NewController(t)
 	defer mockCtl.Finish()
 
@@ -308,7 +305,8 @@ func TestListAllMetrics(t *testing.T) {
 		{
 			name: "No metrics",
 			tc: testCase{
-				wantBody:        "\n<!DOCTYPE html>\n<html>\n<head>\n\n\t<title>Metric's' Data</title>\n\n</head>\n<body>\n\n\t   <h1>Data</h1>\n\t   <ul>\n\t   \n\t   </ul>\n\n\n</body>\n</html>\n",
+				wantBody: "\n<!DOCTYPE html>\n<html>\n<head>\n\n\t<title>Metric's' Data</title>\n\n</head>\n<body>" +
+					"\n\n\t   <h1>Data</h1>\n\t   <ul>\n\t   \n\t   </ul>\n\n\n</body>\n</html>\n",
 				wantStatus:      http.StatusOK,
 				wantContentType: "text/html",
 				setup: func(tc *testCase) {
@@ -322,7 +320,10 @@ func TestListAllMetrics(t *testing.T) {
 		{
 			name: "Positive test",
 			tc: testCase{
-				wantBody:        "\n<!DOCTYPE html>\n<html>\n<head>\n\n\t<title>Metric's' Data</title>\n\n</head>\n<body>\n\n\t   <h1>Data</h1>\n\t   <ul>\n\t   \n\t       <li>couner_1: 534</li>\n\t   \n\t       <li>couner_2: 11</li>\n\t   \n\t       <li>gauge_1: 54.12</li>\n\t   \n\t       <li>gauge_2: 1092.2</li>\n\t   \n\t   </ul>\n\n\n</body>\n</html>",
+				wantBody: "\n<!DOCTYPE html>\n<html>\n<head>\n\n\t<title>Metric's' Data</title>\n\n</head>\n<body>" +
+					"\n\n\t   <h1>Data</h1>\n\t   <ul>\n\t   \n\t       <li>couner_1: 534</li>\n\t   \n\t       " +
+					"<li>couner_2: 11</li>\n\t   \n\t       <li>gauge_1: 54.12</li>\n\t   \n\t       " +
+					"<li>gauge_2: 1092.2</li>\n\t   \n\t   </ul>\n\n\n</body>\n</html>",
 				wantStatus:      http.StatusOK,
 				wantContentType: "text/html",
 				setup: func(tc *testCase) {
@@ -595,7 +596,6 @@ func TestGetTheMetricWithJSON(t *testing.T) {
 
 			if ct := w.Header().Get("Content-Type"); ct != test.tc.wantContentType {
 				t.Errorf("handler returned wrong content-type: got %v\n want %v", ct, test.tc.wantContentType)
-
 			}
 			if code := w.Code; code != test.tc.wantStatus {
 				t.Errorf("handler returned wrong status code: got %v want %v", code, test.tc.wantStatus)

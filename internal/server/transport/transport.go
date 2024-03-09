@@ -181,6 +181,10 @@ func UpdateTheMetricWithJSON(a *API) http.HandlerFunc {
 				return
 			}
 			*m.Value, err = a.Storage.SelectGauge(ctx, m.ID)
+			if err != nil {
+				logger.Error().Err(err).Msg("cannot get gauge")
+				return
+			}
 			w.Header().Set(contentType, applicationJSON)
 			enc := json.NewEncoder(w)
 			if err = enc.Encode(m); err != nil {
