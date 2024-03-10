@@ -1,3 +1,4 @@
+// Package transport provides functionality for handling HTTP transport layer.
 package transport
 
 import (
@@ -17,24 +18,36 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// Storage defines an interface to interact with storage.
+//
 //go:generate mockgen -destination=../../mock/mock_storage.go  -source=server.go Storage
 type Storage interface {
+	// InsertGauge inserts a gauge metric into storage.
 	InsertGauge(ctx context.Context, k string, v float64) error
+	// InsertCounter inserts a counter metric into storage.
 	InsertCounter(ctx context.Context, k string, v int64) error
+	// SelectGauge selects a gauge metric from storage.
 	SelectGauge(ctx context.Context, k string) (float64, error)
+	// SelectCounter selects a counter metric from storage.
 	SelectCounter(ctx context.Context, k string) (int64, error)
+	// GetCounters retrieves all counter metrics from storage.
 	GetCounters(ctx context.Context) (map[string]int64, error)
+	// GetGauges retrieves all gauge metrics from storage.
 	GetGauges(ctx context.Context) (map[string]float64, error)
+	// InsertBatch inserts a batch of metrics into storage.
 	InsertBatch(ctx context.Context, metrics []models.Metrics) error
+	// Ping pings the storage to check its connectivity.
 	Ping(ctx context.Context) error
 }
 
+// API represents an HTTP API server.
 type API struct {
-	Storage Storage
-	Log     zerolog.Logger
-	Cfg     config.Config
+	Storage Storage        // Storage is the storage interface implemention.
+	Log     zerolog.Logger // Log is the logger instance.
+	Cfg     config.Config  // Cfg is the server configuration.
 }
 
+// New creates new instance of API server.
 func New(cfg config.Config, s Storage, l zerolog.Logger) *API {
 	return &API{
 		Cfg:     cfg,
@@ -43,6 +56,7 @@ func New(cfg config.Config, s Storage, l zerolog.Logger) *API {
 	}
 }
 
+// Run starts the HTTP server.
 func (a *API) Run() error {
 	log.Info().Msgf("Starting server on %s", a.Cfg.Endpoint)
 
@@ -61,22 +75,28 @@ func (a *API) registerAPI() chi.Router {
 	r.Use(logger.RequestLogger(a.Log))
 	r.Use(compress.CompressResponse(a.Log))
 
+	// Mount profiler endpoint for debugging purposes.
 	r.Mount("/debug", middleware.Profiler())
 
+	// Define routes for updating metrics.
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", UpdateTheMetricWithJSON(a))
 		r.Post("/{mType}/{mName}/{mValue}", UpdateTheMetric(a))
 	})
 
+	// Route for updating a slice of metrics.
 	r.Post("/updates/", UpdateSliceOfMetrics(a))
 
+	// Route for listing all metrics.
 	r.Get("/", ListAllMetrics(a))
 
+	// Define routes for getting metric values.
 	r.Route("/value", func(r chi.Router) {
 		r.Post("/", GetTheMetricWithJSON(a))
 		r.Get("/{mType}/{mName}", GetTheMetric(a))
 	})
 
+	// Route for pinging the database.
 	r.Get("/ping", PingDB(a))
 
 	return r

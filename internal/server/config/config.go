@@ -1,3 +1,4 @@
+// Package config provides configuration settings for API server.
 package config
 
 import (
@@ -8,16 +9,18 @@ import (
 	storeConf "github.com/ospiem/mcollector/internal/storage/config"
 )
 
+// Config represents the server configuration settings.
 type Config struct {
-	Endpoint    string `env:"ADDRESS"`
-	LogLevel    string `env:"LOG_LEVEL"`
-	Key         string `env:"KEY"`
-	StoreConfig storeConf.Config
+	Endpoint    string           `env:"ADDRESS"`   // Endpoint is the server address.
+	LogLevel    string           `env:"LOG_LEVEL"` // LogLevel is the logging level.
+	Key         string           `env:"KEY"`       // Key is used for hashing func.
+	StoreConfig storeConf.Config // StoreConfig holds configuration for storage.
 }
 type tmpDurations struct {
 	StoreInterval int `env:"STORE_INTERVAL"`
 }
 
+// New creates new instance of Config by parsing environment variables and command-line flags.
 func New() (Config, error) {
 	tmp := tmpDurations{StoreInterval: -1}
 	var c Config

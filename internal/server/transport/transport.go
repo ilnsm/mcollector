@@ -12,34 +12,35 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// htmlTemplate represents the HTML template for displaying metrics data.
 const htmlTemplate = `
 <!DOCTYPE html>
 <html>
 <head>
-
 	<title>Metric's' Data</title>
-
 </head>
 <body>
-
 	   <h1>Data</h1>
 	   <ul>
 	   {{range $key, $value := .}}
 	       <li>{{ $key }}: {{ $value }}</li>
 	   {{end}}
 	   </ul>
-
-
 </body>
 </html>
 `
-const contentType = "Content-Type"
-const applicationJSON = "application/json"
-const internalServerError = "Internal server error"
-const sending200OK = "sending HTTP 200 response"
-const invalidContentType = "invalid content-type"
-const invalitContentTypeNotJSON = "Invalid Content-Type, expected application/json"
 
+// Constants related to HTTP headers and status codes.
+const (
+	contentType               = "Content-Type"
+	applicationJSON           = "application/json"
+	internalServerError       = "Internal server error"
+	sending200OK              = "sending HTTP 200 response"
+	invalidContentType        = "invalid content-type"
+	invalitContentTypeNotJSON = "Invalid Content-Type, expected application/json"
+)
+
+// UpdateTheMetric handles updating a metric based on the HTTP request.
 func UpdateTheMetric(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -82,6 +83,7 @@ func UpdateTheMetric(a *API) http.HandlerFunc {
 	}
 }
 
+// GetTheMetric retrieves a metric based on the HTTP request.
 func GetTheMetric(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -118,6 +120,7 @@ func GetTheMetric(a *API) http.HandlerFunc {
 	}
 }
 
+// ListAllMetrics lists all metrics in a human-readable HTML format.
 func ListAllMetrics(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -158,6 +161,7 @@ func ListAllMetrics(a *API) http.HandlerFunc {
 	}
 }
 
+// UpdateTheMetricWithJSON handles updating a metric using JSON format.
 func UpdateTheMetricWithJSON(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -223,6 +227,7 @@ func UpdateTheMetricWithJSON(a *API) http.HandlerFunc {
 	}
 }
 
+// GetTheMetricWithJSON retrieves a metric using JSON format.
 func GetTheMetricWithJSON(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -280,6 +285,7 @@ func GetTheMetricWithJSON(a *API) http.HandlerFunc {
 	}
 }
 
+// UpdateSliceOfMetrics handles updating a slice of metrics using JSON format.
 func UpdateSliceOfMetrics(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -312,6 +318,7 @@ func UpdateSliceOfMetrics(a *API) http.HandlerFunc {
 	}
 }
 
+// PingDB pings the database to check its connectivity.
 func PingDB(a *API) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()

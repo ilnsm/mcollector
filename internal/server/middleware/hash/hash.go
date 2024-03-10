@@ -1,3 +1,4 @@
+// Package hash provides middleware for verifying the integrity of the request body using HMAC-SHA256 hashing.
 package hash
 
 import (
@@ -11,8 +12,13 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// hashHeader is the HTTP header key for the expected hash.
 const hashHeader = "HashSHA256"
 
+// VerifyRequestBodyIntegrity returns a middleware that verifies
+// the integrity of the request body using HMAC-SHA256 hashing.
+// It compares the computed hash with the hash provided in the HTTP header.
+// If the hashes match, the request proceeds to the next handler; otherwise, it returns a Bad Request error.
 func VerifyRequestBodyIntegrity(log zerolog.Logger, key string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

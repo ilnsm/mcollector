@@ -8,6 +8,7 @@ import (
 const defaultReportInterval = 10
 const defaultPollInterval = 2
 
+// ParseFlag parses command line flags and populates the Config struct accordingly.
 func ParseFlag(c *Config) {
 	var ri, pi int
 	flag.StringVar(&c.Endpoint, "a", "localhost:8080", "Configure the server's host:port")

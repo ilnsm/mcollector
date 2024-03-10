@@ -1,3 +1,5 @@
+// Package agent provides functionality for managing metrics collection and reporting.
+
 package agent
 
 import (
@@ -22,21 +24,37 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// defaultSchema defines the default schema for HTTP requests.
 const defaultSchema = "http://"
+
+// updatePath defines the path for updating metrics.
 const updatePath = "/updates/"
+
+// gauge represents the metric type "gauge".
 const gauge = "gauge"
+
+// counter represents the metric type "counter".
 const counter = "counter"
+
+// cannotCreateRequest is the error message when a request cannot be created.
 const cannotCreateRequest = "cannot create request"
+
+// retryAttempts specifies the number of retry attempts.
 const retryAttempts = 3
+
+// repeatFactor specifies the factor for increasing sleep time between retries.
 const repeatFactor = 2
 
+// errRetryableHTTPStatusCode is the error for retryable HTTP status codes.
 var errRetryableHTTPStatusCode = errors.New("got retryable status code")
 
+// MetricsCollection represents a collection of metrics.
 type MetricsCollection struct {
 	mux  *sync.Mutex
 	coll map[string]string
 }
 
+// NewMetricsCollection creates a new MetricsCollection instance.
 func NewMetricsCollection() *MetricsCollection {
 	return &MetricsCollection{
 		coll: make(map[string]string),
@@ -44,18 +62,21 @@ func NewMetricsCollection() *MetricsCollection {
 	}
 }
 
+// Push adds metrics to the collection.
 func (mc *MetricsCollection) Push(metrics map[string]string) {
 	mc.mux.Lock()
 	defer mc.mux.Unlock()
 	mc.coll = metrics
 }
 
+// Pop retrieves metrics from the collection.
 func (mc *MetricsCollection) Pop() map[string]string {
 	mc.mux.Lock()
 	defer mc.mux.Unlock()
 	return mc.coll
 }
 
+// Worker represents a worker that processes metrics.
 func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config,
 	dataChan chan map[string]string, log zerolog.Logger) {
 	defer wg.Done()
@@ -121,6 +142,7 @@ func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config,
 	}
 }
 
+// doRequestWithJSON sends a request with JSON data.
 func doRequestWithJSON(cfg config.Config, metrics []models.Metrics, client *http.Client, l zerolog.Logger) error {
 	const wrapError = "do request error"
 
@@ -167,6 +189,7 @@ func doRequestWithJSON(cfg config.Config, metrics []models.Metrics, client *http
 	return nil
 }
 
+// isStatusCodeRetryable checks if a status code is retryable.
 func isStatusCodeRetryable(code int) bool {
 	switch code {
 	case
@@ -180,6 +203,7 @@ func isStatusCodeRetryable(code int) bool {
 	}
 }
 
+// generateHash generates a hash for the given key and data.
 func generateHash(key string, data []byte, l zerolog.Logger) string {
 	logger := l.With().Str("func", "generateHash").Logger()
 	h := hmac.New(sha256.New, []byte(key))

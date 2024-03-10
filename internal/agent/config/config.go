@@ -1,3 +1,5 @@
+// Package config provides functionality to manage configuration settings.
+
 package config
 
 import (
@@ -7,20 +9,23 @@ import (
 	"github.com/caarlos0/env/v9"
 )
 
+// Config represents the configuration settings.
 type Config struct {
-	Endpoint       string `env:"ADDRESS"`
-	Key            string `env:"KEY"`
-	LogLevel       string `env:"LOG_LEVEL"`
-	ReportInterval time.Duration
-	PollInterval   time.Duration
-	RateLimit      int `env:"RATE_LIMIT"`
+	Endpoint       string        `env:"ADDRESS"`   // Endpoint for sending metrics.
+	Key            string        `env:"KEY"`       // Key is used for hashing func.
+	LogLevel       string        `env:"LOG_LEVEL"` // LogLevel is the logging level.
+	ReportInterval time.Duration // Time interval for reporting metrics
+	PollInterval   time.Duration // Time interval for polling metrics
+	RateLimit      int           `env:"RATE_LIMIT"` // Rate limit for sending metrics
 }
 
+// tmpDurations represents temporary durations for parsing environment variables.
 type tmpDurations struct {
 	ReportInterval int `env:"REPORT_INTERVAL"`
 	PollInterval   int `env:"POLL_INTERVAL"`
 }
 
+// New creates a new configuration instance.
 func New() (Config, error) {
 	tmp := tmpDurations{
 		ReportInterval: -1,

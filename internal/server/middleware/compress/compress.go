@@ -1,3 +1,4 @@
+// Package compress provides middleware for compressing and decompressing HTTP requests and responses.
 package compress
 
 import (
@@ -9,7 +10,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// compressFunc represents the compression function used.
 const compressFunc = "gzip"
+
+// contentEncoding represents the content encoding type.
 const contentEncoding = "Content-Encoding"
 
 var allowedContentTypes = []string{
@@ -21,11 +25,13 @@ var allowedContentTypes = []string{
 	"text/xml",
 }
 
+// gzipWriter wraps http.ResponseWriter to write compressed data.
 type gzipWriter struct {
 	http.ResponseWriter
 	Writer io.Writer
 }
 
+// Write writes compressed data to underlying writer.
 func (w gzipWriter) Write(b []byte) (int, error) {
 	ww, err := w.Writer.Write(b)
 	if err != nil {
@@ -34,6 +40,7 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 	return ww, nil
 }
 
+// DecompressRequest returns a middleware that decompresses incoming requests if necessary.
 func DecompressRequest(log zerolog.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -68,6 +75,7 @@ func DecompressRequest(log zerolog.Logger) func(next http.Handler) http.Handler 
 	}
 }
 
+// CompressResponse returns a middleware that compress outgoing responses if necessary.
 func CompressResponse(log zerolog.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
