@@ -61,6 +61,8 @@ func (a *API) registerAPI() chi.Router {
 	r.Use(logger.RequestLogger(a.Log))
 	r.Use(compress.CompressResponse(a.Log))
 
+	r.Mount("/debug", middleware.Profiler())
+
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", UpdateTheMetricWithJSON(a))
 		r.Post("/{mType}/{mName}/{mValue}", UpdateTheMetric(a))
