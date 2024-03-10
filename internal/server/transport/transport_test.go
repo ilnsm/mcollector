@@ -580,7 +580,7 @@ func TestGetTheMetricWithJSON(t *testing.T) {
 			a := &API{Storage: test.tc.storage}
 
 			w := httptest.NewRecorder()
-			request := httptest.NewRequest(http.MethodGet, "/", nil)
+			request := httptest.NewRequest(http.MethodPost, "/", nil)
 
 			reader := strings.NewReader(test.tc.sendBody)
 			body := io.NopCloser(reader)

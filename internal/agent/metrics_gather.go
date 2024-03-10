@@ -5,6 +5,7 @@ import (
 	"strconv"
 )
 
+// GetMetrics retrieves metrics related to memory usage.
 func GetMetrics() (map[string]string, error) {
 	var ms runtime.MemStats
 	mtr := make(map[string]string)
