@@ -2,11 +2,11 @@
 package compress
 
 import (
-	"compress/gzip"
 	"fmt"
 	"io"
 	"net/http"
 
+	gzip "github.com/klauspost/compress/gzip"
 	"github.com/rs/zerolog"
 )
 
