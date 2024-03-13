@@ -1,4 +1,4 @@
-package tools
+package helper
 
 import (
 	"github.com/rs/zerolog"
