@@ -10,7 +10,7 @@ import (
 
 	"github.com/ospiem/mcollector/internal/agent"
 	"github.com/ospiem/mcollector/internal/agent/config"
-	"github.com/ospiem/mcollector/internal/tools"
+	"github.com/ospiem/mcollector/internal/helper"
 	"github.com/rs/zerolog"
 )
 
@@ -33,7 +33,7 @@ func run(logger zerolog.Logger) error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	tools.SetGlobalLogLevel(cfg.LogLevel)
+	helper.SetGlobalLogLevel(cfg.LogLevel)
 	logger.Info().Msgf("Start server\nPush to %s\nCollecting metrics every %v\n"+
 		"Send metrics every %v\n", cfg.Endpoint, cfg.PollInterval, cfg.ReportInterval)
 
