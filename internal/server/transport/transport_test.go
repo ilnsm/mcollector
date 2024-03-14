@@ -18,6 +18,7 @@ import (
 )
 
 var errNotFound = errors.New("value not found")
+var errNotUpdated = errors.New("value not updated")
 
 func TestUpdateTheMetric(t *testing.T) {
 	mockCtl := gomock.NewController(t)
@@ -86,7 +87,6 @@ func TestUpdateTheMetric(t *testing.T) {
 				},
 			},
 		},
-
 		{
 			name: "Invalid metric type",
 			tc: testCase{
@@ -96,6 +96,32 @@ func TestUpdateTheMetric(t *testing.T) {
 				wantStatus: http.StatusBadRequest,
 				setup: func(tc *testCase) {
 					tc.storage.EXPECT().InsertGauge(gomock.Any(), tc.mName, float64(0)).Return(nil).Times(0)
+				},
+			},
+		},
+		{
+			name: "Storage returns error on counter",
+			tc: testCase{
+				mType:      models.Counter,
+				mName:      "test_counter",
+				mValue:     "190",
+				wantStatus: http.StatusBadRequest,
+				setup: func(tc *testCase) {
+					v, _ := strconv.ParseInt(tc.mValue, 10, 64)
+					tc.storage.EXPECT().InsertCounter(gomock.Any(), tc.mName, v).Return(errNotUpdated).Times(1)
+				},
+			},
+		},
+		{
+			name: "Positive test with gauge 1",
+			tc: testCase{
+				mType:      models.Gauge,
+				mName:      "test_gauge",
+				mValue:     "39.2",
+				wantStatus: http.StatusBadRequest,
+				setup: func(tc *testCase) {
+					v, _ := strconv.ParseFloat(tc.mValue, 64)
+					tc.storage.EXPECT().InsertGauge(gomock.Any(), tc.mName, v).Return(errNotUpdated).Times(1)
 				},
 			},
 		},
@@ -201,6 +227,32 @@ func TestGetTheMetric(t *testing.T) {
 				wantStatus: http.StatusBadRequest,
 				setup: func(tc *testCase) {
 					tc.storage.EXPECT().SelectCounter(gomock.Any(), tc.mName).Return(int64(0), errNotFound).Times(0)
+				},
+			},
+		},
+		{
+			name: "Gauge not found",
+			tc: testCase{
+				mType:      models.Gauge,
+				mName:      "test_gauge",
+				wantBody:   "404 page not found\n",
+				wantStatus: http.StatusNotFound,
+				setup: func(tc *testCase) {
+					v, _ := strconv.ParseFloat(tc.wantBody, 64)
+					tc.storage.EXPECT().SelectGauge(gomock.Any(), tc.mName).Return(v, errNotFound).Times(1)
+				},
+			},
+		},
+		{
+			name: "Counter not found",
+			tc: testCase{
+				mType:      models.Counter,
+				mName:      "test_counter",
+				wantBody:   "404 page not found\n",
+				wantStatus: http.StatusNotFound,
+				setup: func(tc *testCase) {
+					v, _ := strconv.ParseInt(tc.wantBody, 10, 64)
+					tc.storage.EXPECT().SelectCounter(gomock.Any(), tc.mName).Return(v, errNotFound).Times(1)
 				},
 			},
 		},
@@ -330,12 +382,52 @@ func TestListAllMetrics(t *testing.T) {
 					gauges := make(map[string]float64, 2)
 					gauges["gauge_1"] = 54.12
 					gauges["gauge_2"] = 1092.2
-					//
+
 					counters := make(map[string]int64, 2)
 					counters["couner_1"] = 534
 					counters["couner_2"] = 11
 
 					tc.storage.EXPECT().GetGauges(gomock.Any()).Return(gauges, nil).Times(1)
+					tc.storage.EXPECT().GetCounters(gomock.Any()).Return(counters, nil).Times(1)
+				},
+			},
+		},
+		{
+			name: "Storage error counters",
+			tc: testCase{
+				wantBody:        "",
+				wantStatus:      http.StatusInternalServerError,
+				wantContentType: "text/plain; charset=utf-8",
+				setup: func(tc *testCase) {
+					gauges := make(map[string]float64, 2)
+					gauges["gauge_1"] = 54.12
+					gauges["gauge_2"] = 1092.2
+
+					counters := make(map[string]int64, 2)
+					counters["couner_1"] = 534
+					counters["couner_2"] = 11
+
+					tc.storage.EXPECT().GetGauges(gomock.Any()).Return(gauges, errNotFound).Times(0)
+					tc.storage.EXPECT().GetCounters(gomock.Any()).Return(counters, errNotFound).Times(1)
+				},
+			},
+		},
+		{
+			name: "Storage error gauges",
+			tc: testCase{
+				wantBody:        "",
+				wantStatus:      http.StatusInternalServerError,
+				wantContentType: "text/plain; charset=utf-8",
+				setup: func(tc *testCase) {
+					gauges := make(map[string]float64, 2)
+					gauges["gauge_1"] = 54.12
+					gauges["gauge_2"] = 1092.2
+
+					counters := make(map[string]int64, 2)
+					counters["couner_1"] = 534
+					counters["couner_2"] = 11
+
+					tc.storage.EXPECT().GetGauges(gomock.Any()).Return(gauges, errNotFound).Times(1)
 					tc.storage.EXPECT().GetCounters(gomock.Any()).Return(counters, nil).Times(1)
 				},
 			},
@@ -450,6 +542,42 @@ func TestUpdateTheMetricWithJSON(t *testing.T) {
 				wantStatus: http.StatusBadRequest,
 				setup: func(tc *testCase) {
 					tc.storage.EXPECT().InsertCounter(gomock.Any(), "counter_foo", int64(92)).Times(0)
+					tc.storage.EXPECT().SelectCounter(gomock.Any(), "counter_foo").Return(int64(92), nil).Times(0)
+				},
+				wantContentType: "text/plain; charset=utf-8",
+				sendContentType: applicationJSON,
+			},
+		},
+		{
+			name: "Storage error insert gauge",
+			tc: testCase{
+				sendBody: `{"id": "gauge_bar",
+					"type": "gauge",
+					"value": 38.988}`,
+				wantBody: `{"id": "gauge_bar",
+					"type": "gauge",
+					"value": 38.988}`,
+				wantStatus: http.StatusInternalServerError,
+				setup: func(tc *testCase) {
+					tc.storage.EXPECT().InsertGauge(gomock.Any(), "gauge_bar", 38.988).Return(errNotUpdated).Times(1)
+					tc.storage.EXPECT().SelectGauge(gomock.Any(), "gauge_bar").Return(38.988, errNotFound).Times(0)
+				},
+				wantContentType: "text/plain; charset=utf-8",
+				sendContentType: applicationJSON,
+			},
+		},
+		{
+			name: "Storage error insert counter",
+			tc: testCase{
+				sendBody: `{"id": "counter_foo",
+					"type": "counter",
+					"delta": 92}`,
+				wantBody: `{"id": "counter_foo",
+					"type": "counter",
+					"delta": 92}`,
+				wantStatus: http.StatusInternalServerError,
+				setup: func(tc *testCase) {
+					tc.storage.EXPECT().InsertCounter(gomock.Any(), "counter_foo", int64(92)).Return(errNotUpdated).Times(1)
 					tc.storage.EXPECT().SelectCounter(gomock.Any(), "counter_foo").Return(int64(92), nil).Times(0)
 				},
 				wantContentType: "text/plain; charset=utf-8",
@@ -571,6 +699,40 @@ func TestGetTheMetricWithJSON(t *testing.T) {
 				sendContentType: applicationJSON,
 			},
 		},
+		{
+			name: "Storage error gauge",
+			tc: testCase{
+				sendBody: `{"id": "gauge_bar",
+					"type": "gauge",
+					"value": 38.988}`,
+				wantBody: `{"id": "gauge_bar",
+					"type": "gauge",
+					"value": 38.988}`,
+				wantStatus: http.StatusNotFound,
+				setup: func(tc *testCase) {
+					tc.storage.EXPECT().SelectGauge(gomock.Any(), "gauge_bar").Return(38.988, errNotFound).Times(1)
+				},
+				wantContentType: applicationJSON,
+				sendContentType: applicationJSON,
+			},
+		},
+		{
+			name: "Storage error counter",
+			tc: testCase{
+				sendBody: `{"id": "counter_foo",
+					"type": "counter",
+					"delta": 92}`,
+				wantBody: `{"id": "counter_foo",
+					"type": "counter",
+					"delta": 92}`,
+				wantStatus: http.StatusNotFound,
+				setup: func(tc *testCase) {
+					tc.storage.EXPECT().SelectCounter(gomock.Any(), "counter_foo").Return(int64(92), errNotFound).Times(1)
+				},
+				wantContentType: applicationJSON,
+				sendContentType: applicationJSON,
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -671,6 +833,19 @@ func TestUpdateSliceOfMetrics(t *testing.T) {
 					tc.storage.EXPECT().InsertBatch(gomock.Any(), gomock.Any()).Return(nil).Times(0)
 				},
 				sendContentType: "bad-content-type",
+			},
+		},
+		{
+			name: "Storage error test",
+			tc: testCase{
+				sendBody: `[{"id":"gauge_bar","type":"gauge","value":138.988},
+  							{"id":"counter_foo","type":"counter","delta":113}]`,
+				wantBody:   "",
+				wantStatus: http.StatusInternalServerError,
+				setup: func(tc *testCase) {
+					tc.storage.EXPECT().InsertBatch(gomock.Any(), gomock.Any()).Return(errNotUpdated).Times(1)
+				},
+				sendContentType: applicationJSON,
 			},
 		},
 	}

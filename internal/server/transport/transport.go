@@ -71,7 +71,6 @@ func UpdateTheMetric(a *API) http.HandlerFunc {
 				err = a.Storage.InsertCounter(ctx, mName, v)
 
 				if err != nil {
-					logger.Error().Err(err).Msg("cannot update counter")
 					http.Error(w, "Not Found", http.StatusBadRequest)
 				}
 
@@ -135,13 +134,13 @@ func ListAllMetrics(a *API) http.HandlerFunc {
 		c, err := a.Storage.GetCounters(ctx)
 		if err != nil {
 			logger.Error().Err(err).Msg("cannot get counters")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
 		g, err := a.Storage.GetGauges(ctx)
 		if err != nil {
 			logger.Error().Err(err).Msg("cannot get gauges")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
 
