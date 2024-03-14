@@ -44,6 +44,11 @@ func TestCompressMiddleware(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 			checkResponse: func(t *testing.T, res *http.Response) {
+				defer func() {
+					if err := res.Body.Close(); err != nil {
+						t.Fatal(err)
+					}
+				}()
 				body, err := io.ReadAll(res.Body)
 				if err != nil {
 					t.Fatal(err)
@@ -61,6 +66,11 @@ func TestCompressMiddleware(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 			checkResponse: func(t *testing.T, res *http.Response) {
+				defer func() {
+					if err := res.Body.Close(); err != nil {
+						t.Fatal(err)
+					}
+				}()
 				gr, err := gzip.NewReader(res.Body)
 				if err != nil {
 					t.Fatal(err)
