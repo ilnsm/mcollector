@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+//nolint:all //this is a test file
 func TestCompressMiddleware(t *testing.T) {
 	log := zerolog.New(os.Stderr).With().Timestamp().Logger()
 
@@ -64,7 +65,11 @@ func TestCompressMiddleware(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				defer gr.Close()
+				defer func() {
+					if err := gr.Close(); err != nil {
+						t.Fatal(err)
+					}
+				}()
 
 				body, err := io.ReadAll(gr)
 				if err != nil {
@@ -79,15 +84,17 @@ func TestCompressMiddleware(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			handler := tt.handler(log)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("test data"))
+				_, err := w.Write([]byte("test data"))
+				if err != nil {
+					t.Fatal(err)
+				}
 			}))
 
-			rr := httptest.NewRecorder()
-			handler.ServeHTTP(rr, tt.request())
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, tt.request())
 
-			assert.Equal(t, tt.expectedStatus, rr.Code)
-
-			tt.checkResponse(t, rr.Result())
+			assert.Equal(t, tt.expectedStatus, w.Code)
+			tt.checkResponse(t, w.Result())
 		})
 	}
 }

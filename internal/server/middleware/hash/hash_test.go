@@ -43,7 +43,7 @@ func TestVerifyRequestBodyIntegrity(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
-			request := httptest.NewRequest("POST", "/test", nil)
+			request := httptest.NewRequest(http.MethodPost, "/test", nil)
 			request.Header.Set(hashHeader, tc.hash)
 			request.Body = io.NopCloser(bytes.NewBuffer(tc.body))
 

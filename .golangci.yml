@@ -11,8 +11,7 @@ run:
     - ".ci"
     - ".gradle"
   # Which files to skip: they will be analyzed, but issues from them won't be reported.
-  skip-files:
-    - ".*_test\\.go"
+  skip-files: []
 
   # Invariable parameters #
 
