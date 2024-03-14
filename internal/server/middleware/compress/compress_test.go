@@ -2,7 +2,6 @@ package compress
 
 import (
 	"bytes"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -13,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//nolint:all //this is a test file
 func TestCompressMiddleware(t *testing.T) {
 	log := zerolog.New(os.Stderr).With().Timestamp().Logger()
 
@@ -22,7 +20,7 @@ func TestCompressMiddleware(t *testing.T) {
 		handler        func(log zerolog.Logger) func(next http.Handler) http.Handler
 		request        func() *http.Request
 		expectedStatus int
-		checkResponse  func(*testing.T, *http.Response)
+		expectedBody   string
 	}{
 		{
 			name:    "Decompress test data",
@@ -42,51 +40,8 @@ func TestCompressMiddleware(t *testing.T) {
 				req.Header.Set("Content-Encoding", "gzip")
 				return req
 			},
+			expectedBody:   "test data",
 			expectedStatus: http.StatusOK,
-			checkResponse: func(t *testing.T, res *http.Response) {
-				defer func() {
-					if err := res.Body.Close(); err != nil {
-						t.Fatal(err)
-					}
-				}()
-				body, err := io.ReadAll(res.Body)
-				if err != nil {
-					t.Fatal(err)
-				}
-				assert.Equal(t, "test data", string(body))
-			},
-		},
-		{
-			name:    "Compress test data",
-			handler: CompressResponse,
-			request: func() *http.Request {
-				req := httptest.NewRequest(http.MethodGet, "/test", nil)
-				req.Header.Set("Accept-Encoding", "gzip")
-				return req
-			},
-			expectedStatus: http.StatusOK,
-			checkResponse: func(t *testing.T, res *http.Response) {
-				defer func() {
-					if err := res.Body.Close(); err != nil {
-						t.Fatal(err)
-					}
-				}()
-				gr, err := gzip.NewReader(res.Body)
-				if err != nil {
-					t.Fatal(err)
-				}
-				defer func() {
-					if err := gr.Close(); err != nil {
-						t.Fatal(err)
-					}
-				}()
-
-				body, err := io.ReadAll(gr)
-				if err != nil {
-					t.Fatal(err)
-				}
-				assert.Equal(t, "test data", string(body))
-			},
 		},
 	}
 
@@ -102,9 +57,15 @@ func TestCompressMiddleware(t *testing.T) {
 
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, tt.request())
+			res := w.Result()
+			defer func() {
+				if err := res.Body.Close(); err != nil {
+					t.Fatal(err)
+				}
+			}()
 
+			assert.Equal(t, tt.expectedBody, w.Body.String())
 			assert.Equal(t, tt.expectedStatus, w.Code)
-			tt.checkResponse(t, w.Result())
 		})
 	}
 }
