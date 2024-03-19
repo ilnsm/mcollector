@@ -1,3 +1,4 @@
+// Package file provides functionality for working with file storage.
 package file
 
 import (

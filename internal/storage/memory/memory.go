@@ -1,3 +1,4 @@
+// Package memorystorage implements a memory storage for metrics.
 package memorystorage
 
 import (

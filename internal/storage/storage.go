@@ -1,3 +1,4 @@
+// Package storage provides a storage interface and a function to create a storage instance.
 package storage
 
 import (
