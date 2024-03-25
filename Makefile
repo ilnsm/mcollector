@@ -4,11 +4,15 @@ export GOLANGCI_LINT_CACHE=${PWD}/golangci-lint/.cache
 export SHELL=/bin/zsh
 .PHONY: agent server test lint run_server run_agent
 agent:
-	@go build -o cmd/agent/agent ./cmd/agent/*.go
+	@go build -o cmd/agent/agent -ldflags "-X main.buildVersion=1.0.0 \
+ 				-X 'main.buildDate=$(shell date +'%Y/%m/%d %H:%M:%S')' \
+ 				-X main.buildCommit=$(shell git rev-parse HEAD)" ./cmd/agent/*.go
 
 .PHONY: server
 server:
-	@go build -o cmd/server/server ./cmd/server/*.go
+	@go build -o cmd/server/server -ldflags "-X main.buildVersion=1.0.0 \
+				-X 'main.buildDate=$(shell date +'%Y/%m/%d %H:%M:%S')' \
+				-X main.buildCommit=$(shell git rev-parse HEAD)" ./cmd/server/*.go
 
 .PHONY: run_server
 run_server: server postgres

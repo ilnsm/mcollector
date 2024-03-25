@@ -16,7 +16,23 @@ import (
 
 const timeoutShutdown = 15 * time.Second
 
+var buildVersion string
+var buildDate string
+var buildCommit string
+
 func main() {
+	if buildVersion == "" {
+		buildVersion = "N/A"
+	}
+	if buildDate == "" {
+		buildDate = "N/A"
+	}
+	if buildCommit == "" {
+		buildCommit = "N/A"
+	}
+	fmt.Printf("Build version: %s\nBuild date: %s\nBuild commit: %s\n",
+		buildVersion, buildDate, buildCommit)
+
 	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 	if err := run(logger); err != nil {
 		logger.Fatal().Err(err)
