@@ -21,10 +21,13 @@ var buildDate string = "N/A"
 var buildCommit string = "N/A"
 
 func main() {
-	fmt.Printf("Build version: %s\nBuild date: %s\nBuild commit: %s\n",
-		buildVersion, buildDate, buildCommit)
-
 	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+
+	logger.Log().
+		Str("Build version", buildVersion).
+		Str("Build date", buildDate).
+		Str("Build commit", buildCommit).
+		Msg("Starting agent")
 	if err := run(logger); err != nil {
 		logger.Fatal().Err(err)
 	}
