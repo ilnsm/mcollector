@@ -11,9 +11,18 @@ import (
 	"github.com/rs/zerolog"
 )
 
+var buildVersion string = "N/A"
+var buildDate string = "N/A"
+var buildCommit string = "N/A"
+
 func main() {
 	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 
+	logger.Log().
+		Str("Build version", buildVersion).
+		Str("Build date", buildDate).
+		Str("Build commit", buildCommit).
+		Msg("Starting server")
 	cfg, err := config.New()
 	if err != nil {
 		logger.Fatal().Err(err).Send()

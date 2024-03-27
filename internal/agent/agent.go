@@ -1,5 +1,4 @@
 // Package agent provides functionality for managing metrics collection and reporting.
-
 package agent
 
 import (

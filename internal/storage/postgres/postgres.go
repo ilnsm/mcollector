@@ -1,3 +1,4 @@
+// Package postgres provides a postgres implementation of the storage interface.
 package postgres
 
 import (

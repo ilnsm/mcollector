@@ -89,3 +89,21 @@ func TestGenerateHash(t *testing.T) {
 
 	assert.Equal(t, expectedHash, result)
 }
+
+func TestGetMetrics(t *testing.T) {
+	metrics, err := GetMetrics()
+	assert.NoError(t, err)
+
+	expectedMetrics := []string{
+		"Alloc", "BuckHashSys", "Frees", "GCCPUFraction", "GCSys", "HeapAlloc",
+		"HeapIdle", "HeapInuse", "HeapObjects", "HeapReleased", "HeapSys", "LastGC",
+		"Lookups", "MCacheInuse", "MCacheSys", "MSpanInuse", "MSpanSys", "Mallocs",
+		"NextGC", "NumForcedGC", "NumGC", "OtherSys", "PauseTotalNs", "StackInuse",
+		"StackSys", "Sys", "TotalAlloc",
+	}
+
+	for _, metric := range expectedMetrics {
+		_, exists := metrics[metric]
+		assert.True(t, exists, "Expected metric %s does not exist", metric)
+	}
+}

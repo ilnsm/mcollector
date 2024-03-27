@@ -1,3 +1,4 @@
+// Package helper provides functionality for setting the global log level.
 package helper
 
 import (
@@ -20,7 +21,7 @@ func SetGlobalLogLevel(level string) {
 		zerolog.SetGlobalLevel(zerolog.FatalLevel)
 		log.Log().Msg("Set fatal logLevel")
 	default:
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-		log.Log().Msgf("Invalid log level %s, defaulting to info level", level)
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+		log.Log().Msgf("Invalid log level %s, defaulting to error level", level)
 	}
 }

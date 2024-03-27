@@ -1,10 +1,11 @@
+// Package models provides structures for working with metrics.
 package models
 
 type Metrics struct {
-	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
-	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
-	ID    string   `json:"id"`              // имя метрики
-	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
+	Delta *int64   `json:"delta,omitempty"` // metric value in case of counter transfer
+	Value *float64 `json:"value,omitempty"` // metric value in case of gauge transfer
+	ID    string   `json:"id"`              // metric name
+	MType string   `json:"type"`            // parameter taking the value gauge or counter
 }
 
 const Counter = "counter"
