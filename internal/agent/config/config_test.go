@@ -25,6 +25,7 @@ func TestNewConfigWithEnvironmentVariables(t *testing.T) {
 	t.Setenv("REPORT_INTERVAL", "60")
 	t.Setenv("POLL_INTERVAL", "30")
 	t.Setenv("RATE_LIMIT", "100")
+	t.Setenv("CRYPTO_KEY", "testkey")
 
 	c, err := New()
 	assert.NoError(t, err)
@@ -34,6 +35,7 @@ func TestNewConfigWithEnvironmentVariables(t *testing.T) {
 	assert.Equal(t, time.Duration(60)*time.Second, c.ReportInterval)
 	assert.Equal(t, time.Duration(30)*time.Second, c.PollInterval)
 	assert.Equal(t, 100, c.RateLimit)
+	assert.Equal(t, "testkey", c.CryptoKey)
 }
 
 func TestNewConfigWithInvalidEnvironmentVariables(t *testing.T) {

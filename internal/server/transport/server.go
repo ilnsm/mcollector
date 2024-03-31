@@ -10,6 +10,7 @@ import (
 	"github.com/ospiem/mcollector/internal/models"
 	"github.com/ospiem/mcollector/internal/server/middleware/compress"
 	"github.com/ospiem/mcollector/internal/server/middleware/hash"
+	"github.com/ospiem/mcollector/internal/server/middleware/ssl"
 	"github.com/rs/zerolog"
 
 	"github.com/go-chi/chi/v5"
@@ -68,36 +69,50 @@ func (a *API) Run() error {
 }
 
 func (a *API) registerAPI() chi.Router {
+	privateKey, err := ssl.ParsePrivateKey(a.Cfg.CryptoKey)
+	if err != nil {
+		a.Log.Fatal().Msg("failed to parse private key")
+	}
+
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
-	r.Use(compress.DecompressRequest(a.Log))
-	r.Use(hash.VerifyRequestBodyIntegrity(a.Log, a.Cfg.Key))
 	r.Use(logger.RequestLogger(a.Log))
-	r.Use(compress.CompressResponse(a.Log))
 
 	// Mount profiler endpoint for debugging purposes.
 	r.Mount("/debug", middleware.Profiler())
 
 	// Define routes for updating metrics.
 	r.Route("/update", func(r chi.Router) {
-		r.Post("/", UpdateTheMetricWithJSON(a))
-		r.Post("/{mType}/{mName}/{mValue}", UpdateTheMetric(a))
+		r.Group(func(r chi.Router) {
+			// Middleware stack for updating metrics.
+			r.Use(compress.DecompressRequest(a.Log))
+			r.Use(hash.VerifyRequestBodyIntegrity(a.Log, a.Cfg.Key))
+			r.Use(ssl.Terminate(a.Log, privateKey))
+			r.Use(compress.CompressResponse(a.Log))
+
+			r.Post("/", UpdateTheMetricWithJSON(a))
+			r.Post("/{mType}/{mName}/{mValue}", UpdateTheMetric(a))
+			// Route for updating a slice of metrics.
+			r.Post("/updates/", UpdateSliceOfMetrics(a))
+		})
 	})
 
-	// Route for updating a slice of metrics.
-	r.Post("/updates/", UpdateSliceOfMetrics(a))
+	r.Group(func(r chi.Router) {
+		// Middleware stack for getting metrics.
+		r.Use(compress.DecompressRequest(a.Log))
 
-	// Route for listing all metrics.
-	r.Get("/", ListAllMetrics(a))
+		// Route for listing all metrics.
+		r.Get("/", ListAllMetrics(a))
 
-	// Define routes for getting metric values.
-	r.Route("/value", func(r chi.Router) {
-		r.Post("/", GetTheMetricWithJSON(a))
-		r.Get("/{mType}/{mName}", GetTheMetric(a))
+		// Define routes for getting metric values.
+		r.Route("/value", func(r chi.Router) {
+			r.Post("/", GetTheMetricWithJSON(a))
+			r.Get("/{mType}/{mName}", GetTheMetric(a))
+		})
+
+		// Route for pinging the database.
+		r.Get("/ping", PingDB(a))
 	})
-
-	// Route for pinging the database.
-	r.Get("/ping", PingDB(a))
 
 	return r
 }

@@ -26,12 +26,9 @@ func VerifyRequestBodyIntegrity(log zerolog.Logger, key string) func(next http.H
 
 			hash := r.Header.Get(hashHeader)
 			if hash == "" {
-				l.Debug().Msg("request has no hash header")
 				next.ServeHTTP(w, r)
 				return
 			}
-
-			l.Debug().Msgf("got hash header %s", hash)
 
 			b, err := io.ReadAll(r.Body)
 			if err != nil {

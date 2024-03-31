@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"net/http"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -106,4 +107,35 @@ func TestGetMetrics(t *testing.T) {
 		_, exists := metrics[metric]
 		assert.True(t, exists, "Expected metric %s does not exist", metric)
 	}
+}
+
+func TestEncryptDataWithInvalidKeyPath(t *testing.T) {
+	_, err := encryptData([]byte("testData"), "nonexistent.pem")
+	assert.Error(t, err)
+}
+
+func TestEncryptDataWithInvalidCertificate(t *testing.T) {
+	err := os.WriteFile("invalid.pem", []byte("invalid"), 0644)
+	assert.NoError(t, err)
+	_, err = encryptData([]byte("testData"), "/tmp/invalid.pem")
+	assert.Error(t, err)
+	os.Remove("/tmp/invalid.pem")
+}
+
+func TestEncryptDataWithValidCertificate(t *testing.T) {
+	err := os.WriteFile("/tmp/valid.pem", []byte(`-----BEGIN CERTIFICATE-----
+MIIBUzCB2qADAgECAgEBMAoGCCqGSM49BAMCMBUxEzARBgNVBAoTCm1jb2xsZWN0
+b3IwHhcNMjQwMzMxMTM1ODU1WhcNMzQwMzMxMTM1ODU1WjAVMRMwEQYDVQQKEwpt
+Y29sbGVjdG9yMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEQ08QQSIFpW5S+sxDm1/4
+/hG4UJrPd3SY4m/MN0PKdrscZncrzS6cmiJ0JErxOle06bQSRRA/CgIV6qPDKtS4
+thJEFEqLzIsr+3SJvDmX4xGutdJQmcj3AQSlS2R38CBsMAoGCCqGSM49BAMCA2gA
+MGUCMQCNAqIjkUlhQUuyaKOuO2gJbr92lxIL5tYkIJ6johEi4aRjCLPOLKf2Lnb4
+IoZJD6oCMDuhQlLu3fV4BLuSiHIXGp56mHG9FpWdFvNq5i7g3bkxt4bbwMdLCeyf
+t0IlJDQqiw==
+-----END CERTIFICATE-----
+`), 0600)
+	assert.NoError(t, err)
+	_, err = encryptData([]byte("testData"), "/tmp/valid.pem")
+	assert.NoError(t, err)
+	os.Remove("/tmp/valid.pem")
 }

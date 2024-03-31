@@ -11,9 +11,10 @@ import (
 
 // Config represents the server configuration settings.
 type Config struct {
-	Endpoint    string           `env:"ADDRESS"`   // Endpoint is the server address.
-	LogLevel    string           `env:"LOG_LEVEL"` // LogLevel is the logging level.
-	Key         string           `env:"KEY"`       // Key is used for hashing func.
+	Endpoint    string           `env:"ADDRESS"`    // Endpoint is the server address.
+	CryptoKey   string           `env:"CRYPTO_KEY"` // CryptoKey is used to decrypt the request
+	LogLevel    string           `env:"LOG_LEVEL"`  // LogLevel is the logging level.
+	Key         string           `env:"KEY"`        // Key is used for hashing func.
 	StoreConfig storeConf.Config // StoreConfig holds configuration for storage.
 }
 type tmpDurations struct {

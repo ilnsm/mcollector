@@ -5,19 +5,25 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/ecdsa"
 	"crypto/hmac"
+	crand "crypto/rand"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"math/rand"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/crypto/ecies"
 	"github.com/ospiem/mcollector/internal/agent/config"
 	"github.com/ospiem/mcollector/internal/models"
 	"github.com/rs/zerolog"
@@ -123,6 +129,7 @@ func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config,
 				l.Debug().Msg("Trying to send request")
 				err := doRequestWithJSON(cfg, metricSlice, client, log)
 				if err == nil {
+					l.Err(err).Msg("failed to send request")
 					break
 				}
 				if errors.As(err, &opError) || errors.Is(err, errRetryableHTTPStatusCode) {
@@ -150,9 +157,14 @@ func doRequestWithJSON(cfg config.Config, metrics []models.Metrics, client *http
 		return fmt.Errorf("error marshaling JSON: %w", err)
 	}
 
+	encryptedData, err := encryptData(jsonData, cfg.CryptoKey)
+	if err != nil {
+		return fmt.Errorf("cannot encrypt data: %w", err)
+	}
+
 	var buf bytes.Buffer
 	g := gzip.NewWriter(&buf)
-	if _, err = g.Write(jsonData); err != nil {
+	if _, err = g.Write(encryptedData); err != nil {
 		return fmt.Errorf("create gzip in %s: %w", wrapError, err)
 	}
 	if err = g.Close(); err != nil {
@@ -169,7 +181,7 @@ func doRequestWithJSON(cfg config.Config, metrics []models.Metrics, client *http
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Content-Encoding", "gzip")
 	if cfg.Key != "" {
-		request.Header.Set("HashSHA256", generateHash(cfg.Key, jsonData, l))
+		request.Header.Set("HashSHA256", generateHash(cfg.Key, encryptedData, l))
 	}
 
 	r, err := client.Do(request)
@@ -186,6 +198,48 @@ func doRequestWithJSON(cfg config.Config, metrics []models.Metrics, client *http
 	}
 
 	return nil
+}
+
+// encryptData encrypts the provided data using the public key from the provided file.
+// The function reads the public key from the file, decodes the PEM-encoded certificate,
+// parses the certificate to get the public key, and then uses that public key to encrypt the data.
+func encryptData(data []byte, key string) ([]byte, error) {
+	// Read the certificate from the file
+	publicKeyPEM, err := os.ReadFile(key)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open public key: %w", err)
+	}
+
+	// Decode the PEM-encoded certificate
+	block, _ := pem.Decode(publicKeyPEM)
+	if block == nil {
+		return nil, fmt.Errorf("failed to parse certificate PEM: %w", err)
+	}
+
+	// Parse the certificate to get the public key
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse certificate: %w", err)
+	}
+
+	// Assert the public key to an ECDSA public key
+	publicKey := cert.PublicKey
+	ecdsaPublicKey, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("failed to assert public key to ECDSA public key: %w", err)
+	}
+
+	// Import the ECDSA public key to an ECIES public key
+	publicKeyECIES := ecies.ImportECDSAPublic(ecdsaPublicKey)
+
+	// Encrypt the data
+	cipherdata, err := ecies.Encrypt(crand.Reader, publicKeyECIES, data, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encrypt data: %w", err)
+	}
+
+	// Return the encrypted data
+	return cipherdata, nil
 }
 
 // isStatusCodeRetryable checks if a status code is retryable.

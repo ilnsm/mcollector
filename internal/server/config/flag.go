@@ -32,6 +32,9 @@ func ParseFlag(c *Config) {
 	if flag.Lookup("k") == nil {
 		flag.StringVar(&c.Key, "k", "", "Set key for hash function")
 	}
+	if flag.Lookup("crypto-key") == nil {
+		flag.StringVar(&c.CryptoKey, "crypto-key", "", "define the private key")
+	}
 
 	flag.Parse()
 	c.StoreConfig.StoreInterval = time.Duration(i) * time.Second

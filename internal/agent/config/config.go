@@ -10,9 +10,10 @@ import (
 
 // Config represents the configuration settings.
 type Config struct {
-	Endpoint       string        `env:"ADDRESS"`   // Endpoint for sending metrics.
-	Key            string        `env:"KEY"`       // Key is used for hashing func.
-	LogLevel       string        `env:"LOG_LEVEL"` // LogLevel is the logging level.
+	Endpoint       string        `env:"ADDRESS"`    // Endpoint for sending metrics.
+	CryptoKey      string        `env:"CRYPTO_KEY"` // CRYPTO_KEY is used to encrypt the request
+	Key            string        `env:"KEY"`        // Key is used for hashing func.
+	LogLevel       string        `env:"LOG_LEVEL"`  // LogLevel is the logging level.
 	ReportInterval time.Duration // Time interval for reporting metrics
 	PollInterval   time.Duration // Time interval for polling metrics
 	RateLimit      int           `env:"RATE_LIMIT"` // Rate limit for sending metrics
