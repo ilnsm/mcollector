@@ -1,4 +1,4 @@
-// Package config provides configuration settings for API server.
+// Package config provides configuration settings for the API server.
 package config
 
 import (
@@ -23,6 +23,7 @@ type Config struct {
 	StoreConfig storeConf.Config // StoreConfig holds configuration for storage.
 }
 
+// JSONConfig represents the configuration settings in JSON format.
 type JSONConfig struct {
 	Endpoint      string `json:"address"`
 	Restore       bool   `json:"restore"`
@@ -32,16 +33,18 @@ type JSONConfig struct {
 	CryptoKey     string `json:"crypto_key"`
 }
 
+// tmpDurations represents temporary durations for parsing environment variables.
 type tmpDurations struct {
 	StoreInterval int `env:"STORE_INTERVAL"`
 }
 
-// New creates new instance of Config by parsing environment variables and command-line flags.
+// New creates a new instance of Config by parsing environment variables and command-line flags.
 func New() (Config, error) {
 	tmp := tmpDurations{StoreInterval: -1}
 	var c Config
 	ParseFlag(&c)
 
+	// Parse the environment variables into the temporary and main configuration structs
 	err := env.Parse(&tmp)
 	if err != nil {
 		wrapErr := fmt.Errorf("parse tmp error: %w", err)
@@ -54,10 +57,12 @@ func New() (Config, error) {
 		return c, wrapErr
 	}
 
+	// Convert the temporary durations to time.Duration and assign them to the main configuration
 	if tmp.StoreInterval > 0 {
 		c.StoreConfig.StoreInterval = time.Duration(tmp.StoreInterval) * time.Second
 	}
 
+	// Parse the configuration file (if provided)
 	err = c.parseConfigFileJSON()
 	if err != nil {
 		return Config{}, fmt.Errorf("failed to parse config file: %w", err)
@@ -66,11 +71,14 @@ func New() (Config, error) {
 	return c, nil
 }
 
+// parseConfigFileJSON parses the configuration file and updates the configuration settings.
+// It only updates a setting if it has not been set by an environment variable.
 func (c *Config) parseConfigFileJSON() error {
 	if c.Config == "" {
 		return nil
 	}
 
+	// Open the configuration file
 	f, err := os.Open(c.Config)
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
@@ -81,17 +89,20 @@ func (c *Config) parseConfigFileJSON() error {
 		}
 	}()
 
+	// Read the configuration file
 	confFile, err := io.ReadAll(f)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
 
+	// Parse the configuration file into a temporary JSON configuration struct
 	tmp := JSONConfig{}
 	err = json.Unmarshal(confFile, &tmp)
 	if err != nil {
 		return fmt.Errorf("failed to parse json: %w", err)
 	}
 
+	// Update the main configuration settings with the settings from the configuration file
 	if c.Endpoint == "" {
 		c.Endpoint = tmp.Endpoint
 	}
