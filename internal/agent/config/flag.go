@@ -32,6 +32,9 @@ func ParseFlag(c *Config) {
 	if flag.Lookup("crypto-key") == nil {
 		flag.StringVar(&c.CryptoKey, "crypto-key", "", "define the public key")
 	}
+	if flag.Lookup("config") == nil {
+		flag.StringVar(&c.Config, "config", "", "define the config file in JSON format")
+	}
 	flag.Parse()
 
 	c.ReportInterval = time.Duration(ri) * time.Second

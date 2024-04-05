@@ -27,7 +27,7 @@ dIm8OZfjEa610lCZyPcBBKVLZHfwIGw=
 	os.Remove("/tmp/key.pem")
 }
 
-//func TestTerminateMiddlewareWithValidBody(t *testing.T) {
+//Func TestTerminateMiddlewareWithValidBody(t *testing.T) {
 //	log := zerolog.Nop()
 //	privkey, _ := ecies.GenerateKey(rand.Reader, elliptic.P384(), nil)
 //
@@ -43,7 +43,7 @@ dIm8OZfjEa610lCZyPcBBKVLZHfwIGw=
 //
 //	assert.Equal(t, http.StatusOK, w.Code)
 //	assert.Equal(t, plaintext, w.Body.Bytes())
-//}
+//}.
 
 func TestTerminateMiddlewareWithInvalidBody(t *testing.T) {
 	log := zerolog.Nop()
