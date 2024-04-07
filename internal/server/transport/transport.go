@@ -51,6 +51,8 @@ const (
 
 // Storage is an interface that defines methods for interacting with storage.
 // It includes methods for inserting, selecting, and retrieving metrics, as well as for pinging and closing the storage.
+//
+//go:generate mockgen -destination=../../mock/mock_storage.go  -source=transport.go Storage
 type Storage interface {
 	InsertGauge(ctx context.Context, k string, v float64) error
 	InsertCounter(ctx context.Context, k string, v int64) error
@@ -70,7 +72,8 @@ type API struct {
 	Cfg     config.Config  // Cfg is the server configuration.
 }
 
-// New creates a new instance of the API server. It takes a server configuration, a storage interface, and a logger as parameters.
+// New creates a new instance of the API server.
+// It takes a server configuration, a storage interface, and a logger as parameters.
 func New(cfg *config.Config, s Storage, l *zerolog.Logger) *API {
 	return &API{
 		Cfg:     *cfg,
@@ -79,7 +82,8 @@ func New(cfg *config.Config, s Storage, l *zerolog.Logger) *API {
 	}
 }
 
-// registerAPI registers the API routes and their corresponding handlers. It also sets up the necessary middleware for each route.
+// registerAPI registers the API routes and their corresponding handlers.
+// It also sets up the necessary middleware for each route.
 func (a *API) registerAPI() chi.Router {
 	// Parse the private key from the server configuration.
 	privateKey, err := ssl.ParsePrivateKey(a.Cfg.CryptoKey)

@@ -140,10 +140,6 @@ func Run(logger zerolog.Logger) error {
 	}
 }
 
-func sendMetrics(metrics map[string]string, cfg config.Config) {
-
-}
-
 // NewMetricsCollection creates a new MetricsCollection instance.
 func NewMetricsCollection() *MetricsCollection {
 	return &MetricsCollection{
@@ -216,8 +212,9 @@ func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config,
 	}
 }
 
+// createMetricSlice creates a slice of metrics from a map.
 func createMetricSlice(metrics map[string]string, l *zerolog.Logger) []models.Metrics {
-	var metricSlice []models.Metrics
+	metricSlice := make([]models.Metrics, len(metrics), 0)
 	var pollIncrement int64 = 1
 
 	for name, value := range metrics {
@@ -269,7 +266,7 @@ func doRequestWithJSON(cfg config.Config, metrics []models.Metrics, l *zerolog.L
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Content-Encoding", "gzip")
 	if cfg.Key != "" {
-		request.Header.Set("HashSHA256", generateHash(cfg.Key, encryptedData, l))
+		request.Header.Set("HashSHA256", generateHash(cfg.Key, encryptedData, *l))
 	}
 
 	client := &http.Client{}
@@ -346,7 +343,7 @@ func isStatusCodeRetryable(code int) bool {
 }
 
 // generateHash generates a hash for the given key and data.
-func generateHash(key string, data []byte, l *zerolog.Logger) string {
+func generateHash(key string, data []byte, l zerolog.Logger) string {
 	logger := l.With().Str("func", "generateHash").Logger()
 	h := hmac.New(sha256.New, []byte(key))
 	_, err := h.Write(data)

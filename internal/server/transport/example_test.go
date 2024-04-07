@@ -28,7 +28,7 @@ func Example() {
 		logger.Fatal().Err(err).Send()
 	}
 
-	api := transport.New(cfg, s, logger)
+	api := transport.New(&cfg, s, &logger)
 
 	req, err := http.NewRequest(http.MethodGet, "/ping", nil)
 	if err != nil {

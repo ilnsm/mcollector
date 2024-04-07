@@ -26,11 +26,11 @@ type Config struct {
 // JSONConfig represents the configuration settings in JSON format.
 type JSONConfig struct {
 	Endpoint      string `json:"address"`
-	Restore       bool   `json:"restore"`
 	StoreInterval string `json:"store_interval"`
 	StoreFile     string `json:"store_file"`
 	DatabaseDsn   string `json:"database_dsn"`
 	CryptoKey     string `json:"crypto_key"`
+	Restore       bool   `json:"restore"`
 }
 
 // tmpDurations represents temporary durations for parsing environment variables.
@@ -112,7 +112,7 @@ func (c *Config) parseConfigFileJSON() error {
 	if c.StoreConfig.FileStoragePath == "" {
 		c.StoreConfig.FileStoragePath = tmp.StoreFile
 	}
-	if c.StoreConfig.Restore == false {
+	if !c.StoreConfig.Restore {
 		c.StoreConfig.Restore = tmp.Restore
 	}
 	if c.StoreConfig.StoreInterval == defaultFlushInterval*time.Second {

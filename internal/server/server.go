@@ -66,18 +66,18 @@ func Run(logger zerolog.Logger) error {
 		wg.Wait()
 	}()
 
-	// Initialize the storage.
-	storage, err := storage.New(ctx, cfg.StoreConfig)
+	// Initialize the s.
+	s, err := storage.New(ctx, cfg.StoreConfig)
 	if err != nil {
-		return fmt.Errorf("failed to initialize storage: %w", err)
+		fmt.Println(err)
+		return fmt.Errorf("failed to initialize s: %w", err)
 	}
 
-	// Watch the storage for closure.
-	watchStorage(ctx, wg, storage, &logger)
-
+	// Watch the s for closure.
+	watchStorage(ctx, wg, s, &logger)
 	// Initialize the API and the server.
 	componentsErrs := make(chan error, 1)
-	api := transport.New(&cfg, storage, &logger)
+	api := transport.New(&cfg, s, &logger)
 	srv := api.InitServer()
 
 	// Manage the server lifecycle.

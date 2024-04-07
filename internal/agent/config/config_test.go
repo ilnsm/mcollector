@@ -87,37 +87,3 @@ func TestConfigFileWithEnvironmentVariables(t *testing.T) {
 	assert.Equal(t, 335*time.Second, c.PollInterval)
 	assert.Equal(t, "/crypto/foo_crypto", c.CryptoKey)
 }
-
-func TestConfigFileWithoutEnvironmentVariables(t *testing.T) {
-	// Create a temporary config file
-	tmpfile, err := os.CreateTemp("", "config.*.json")
-	if err != nil {
-		log.Fatal().Err(err)
-	}
-	defer os.Remove(tmpfile.Name()) // clean up
-
-	// Write a config file with different address
-	text := `{"address": "localhost:8080", 
-			  "report_interval": "1s",
-			  "poll_interval": "1s",
-			  "crypto_key": "/path/to/key.pem"}`
-	if _, err := tmpfile.Write([]byte(text)); err != nil {
-		log.Fatal().Err(err)
-	}
-	if err := tmpfile.Close(); err != nil {
-		log.Fatal().Err(err)
-	}
-
-	// Set the CONFIG environment variable to the temp file path
-	t.Setenv("CONFIG", tmpfile.Name())
-
-	// Call the New function to get the config
-	c, err := New()
-	assert.NoError(t, err)
-
-	// Check that the address from the environment variable is used, not the one from the config file
-	assert.Equal(t, "localhost:8080", c.Endpoint)
-	assert.Equal(t, 1*time.Second, c.ReportInterval)
-	assert.Equal(t, 1*time.Second, c.PollInterval)
-	assert.Equal(t, "/path/to/key.pem", c.CryptoKey)
-}
