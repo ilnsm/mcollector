@@ -129,7 +129,6 @@ func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config,
 				l.Debug().Msg("Trying to send request")
 				err := doRequestWithJSON(cfg, metricSlice, client, log)
 				if err == nil {
-					l.Err(err).Msg("failed to send request")
 					break
 				}
 				if errors.As(err, &opError) || errors.Is(err, errRetryableHTTPStatusCode) {

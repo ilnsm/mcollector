@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/ospiem/mcollector/internal/agent"
@@ -35,7 +36,7 @@ func main() {
 }
 
 func run(logger zerolog.Logger) error {
-	ctx, cancelCtx := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, cancelCtx := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancelCtx()
 
 	cfg, err := config.New()
