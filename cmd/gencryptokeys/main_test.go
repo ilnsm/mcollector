@@ -2,7 +2,6 @@ package main
 
 //nolint:all
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -46,7 +45,7 @@ func TestGenerateKeys_CertificateContent(t *testing.T) {
 	err := generateKeys(path)
 	assert.NoError(t, err)
 
-	certPEM, err := ioutil.ReadFile(path + "/cert.pem")
+	certPEM, err := os.ReadFile(path + "/cert.pem")
 	assert.NoError(t, err)
 	assert.Contains(t, string(certPEM), "CERTIFICATE")
 }
@@ -58,7 +57,7 @@ func TestGenerateKeys_PrivateKeyContent(t *testing.T) {
 	err := generateKeys(path)
 	assert.NoError(t, err)
 
-	privKeyPEM, err := ioutil.ReadFile(path + "/privkey.pem")
+	privKeyPEM, err := os.ReadFile(path + "/privkey.pem")
 	assert.NoError(t, err)
 	assert.Contains(t, string(privKeyPEM), "PRIVATE KEY")
 }

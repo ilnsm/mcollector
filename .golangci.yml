@@ -17,6 +17,7 @@ run:
     - ssh_test.go
     - config_test.go
     - ssl_test.go
+    - main_test.go
 
   # Invariable parameters #
 
