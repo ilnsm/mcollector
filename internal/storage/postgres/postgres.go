@@ -260,6 +260,11 @@ func (db DB) Ping(ctx context.Context) error {
 	return nil
 }
 
+func (db *DB) Close(ctx context.Context) error {
+	db.pool.Close()
+	return nil
+}
+
 func createBatch(metrics []models.Metrics) *pgx.Batch {
 	b := &pgx.Batch{}
 	for _, m := range metrics {

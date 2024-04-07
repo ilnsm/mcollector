@@ -21,6 +21,7 @@ type Storage interface {
 	GetGauges(ctx context.Context) (map[string]float64, error)
 	InsertBatch(ctx context.Context, metrics []models.Metrics) error
 	Ping(ctx context.Context) error
+	Close(ctx context.Context) error
 }
 
 type Config struct {

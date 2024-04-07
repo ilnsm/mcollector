@@ -19,15 +19,24 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto/ecies"
 	"github.com/ospiem/mcollector/internal/agent/config"
+	"github.com/ospiem/mcollector/internal/helper"
 	"github.com/ospiem/mcollector/internal/models"
 	"github.com/rs/zerolog"
 )
+
+const timeoutShutdown = 15 * time.Second
+
+var buildVersion string = "N/A"
+var buildDate string = "N/A"
+var buildCommit string = "N/A"
 
 // defaultSchema defines the default schema for HTTP requests.
 const defaultSchema = "http://"
@@ -57,6 +66,82 @@ var errRetryableHTTPStatusCode = errors.New("got retryable status code")
 type MetricsCollection struct {
 	mux  *sync.Mutex
 	coll map[string]string
+}
+
+func Run(logger zerolog.Logger) error {
+	logger.Log().
+		Str("Build version", buildVersion).
+		Str("Build date", buildDate).
+		Str("Build commit", buildCommit).
+		Msg("Starting agent")
+
+	ctx, cancelCtx := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancelCtx()
+
+	cfg, err := config.New()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	helper.SetGlobalLogLevel(cfg.LogLevel)
+	logger.Info().Msgf("Start server\nPush to %s\nCollecting metrics every %v\n"+
+		"Send metrics every %v\n", cfg.Endpoint, cfg.PollInterval, cfg.ReportInterval)
+
+	context.AfterFunc(ctx, func() {
+		ctx, cancelCtx := context.WithTimeout(context.Background(), timeoutShutdown)
+		defer cancelCtx()
+
+		<-ctx.Done()
+		logger.Fatal().Msg("failed to gracefully shutdown the service")
+	})
+
+	wg := &sync.WaitGroup{}
+	defer func() {
+		// When exiting the Run function, we expect the completion of application components
+		wg.Wait()
+	}()
+
+	mc := NewMetricsCollection()
+	collectTicker := time.NewTicker(cfg.PollInterval)
+	sendTicker := time.NewTicker(cfg.ReportInterval)
+	defer collectTicker.Stop()
+	defer sendTicker.Stop()
+
+	jobs := make(chan map[string]string, cfg.RateLimit)
+
+	for i := 0; i < cfg.RateLimit; i++ {
+		wg.Add(1)
+		go Worker(ctx, wg, cfg, jobs, logger)
+	}
+	for {
+		select {
+		case <-ctx.Done():
+			metrics := mc.Pop()
+			metrircsSlice := createMetricSlice(metrics, &logger)
+			if err := doRequestWithJSON(cfg, metrircsSlice, &logger); err != nil {
+				logger.Error().Err(err).Msg("failed to send last metrics")
+			}
+			return nil
+		case <-collectTicker.C:
+			metrics, err := GetMetrics()
+			if err != nil {
+				logger.Error().Err(err).Msg("cannot get metrics")
+				continue
+			}
+			mc.Push(metrics)
+		case <-sendTicker.C:
+			metrics := mc.Pop()
+			select {
+			case jobs <- metrics:
+			default:
+				logger.Error().Msg("failed to send another job to workers, all workers are busy")
+			}
+		}
+	}
+}
+
+func sendMetrics(metrics map[string]string, cfg config.Config) {
+
 }
 
 // NewMetricsCollection creates a new MetricsCollection instance.
@@ -97,23 +182,7 @@ func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config,
 		case <-reqTicker.C:
 
 			metrics := <-dataChan
-			var pollIncrement int64 = 1
-			client := &http.Client{}
-			var metricSlice []models.Metrics
-
-			for name, value := range metrics {
-				v, err := strconv.ParseFloat(value, 64)
-				if err != nil {
-					l.Error().Err(err).Msg("error convert string to float")
-					continue
-				}
-				metricSlice = append(metricSlice, models.Metrics{MType: gauge, ID: name, Value: &v})
-			}
-
-			randomFloat := rand.Float64()
-			metricSlice = append(metricSlice, models.Metrics{MType: gauge, ID: "RandomValue", Value: &randomFloat},
-				models.Metrics{MType: counter, ID: "PollCount", Delta: &pollIncrement})
-
+			metricSlice := createMetricSlice(metrics, &log)
 			attempt := 0
 			sleepTime := 1 * time.Second
 
@@ -127,7 +196,7 @@ func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config,
 
 				var opError *net.OpError
 				l.Debug().Msg("Trying to send request")
-				err := doRequestWithJSON(cfg, metricSlice, client, log)
+				err := doRequestWithJSON(cfg, metricSlice, &log)
 				if err == nil {
 					break
 				}
@@ -147,8 +216,28 @@ func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config,
 	}
 }
 
+func createMetricSlice(metrics map[string]string, l *zerolog.Logger) []models.Metrics {
+	var metricSlice []models.Metrics
+	var pollIncrement int64 = 1
+
+	for name, value := range metrics {
+		v, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			l.Error().Err(err).Msg("error convert string to float")
+			continue
+		}
+		metricSlice = append(metricSlice, models.Metrics{MType: gauge, ID: name, Value: &v})
+	}
+
+	randomFloat := rand.Float64()
+	metricSlice = append(metricSlice, models.Metrics{MType: gauge, ID: "RandomValue", Value: &randomFloat},
+		models.Metrics{MType: counter, ID: "PollCount", Delta: &pollIncrement})
+
+	return metricSlice
+}
+
 // doRequestWithJSON sends a request with JSON data.
-func doRequestWithJSON(cfg config.Config, metrics []models.Metrics, client *http.Client, l zerolog.Logger) error {
+func doRequestWithJSON(cfg config.Config, metrics []models.Metrics, l *zerolog.Logger) error {
 	const wrapError = "do request error"
 
 	jsonData, err := json.Marshal(metrics)
@@ -183,6 +272,7 @@ func doRequestWithJSON(cfg config.Config, metrics []models.Metrics, client *http
 		request.Header.Set("HashSHA256", generateHash(cfg.Key, encryptedData, l))
 	}
 
+	client := &http.Client{}
 	r, err := client.Do(request)
 	if err != nil {
 		return fmt.Errorf("%s: %w", wrapError, err)
@@ -256,7 +346,7 @@ func isStatusCodeRetryable(code int) bool {
 }
 
 // generateHash generates a hash for the given key and data.
-func generateHash(key string, data []byte, l zerolog.Logger) string {
+func generateHash(key string, data []byte, l *zerolog.Logger) string {
 	logger := l.With().Str("func", "generateHash").Logger()
 	h := hmac.New(sha256.New, []byte(key))
 	_, err := h.Write(data)
