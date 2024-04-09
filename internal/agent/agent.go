@@ -170,7 +170,8 @@ func (mc *MetricsCollection) Pop() map[string]string {
 }
 
 // Worker represents a worker that processes metrics.
-func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, dataChan chan map[string]string, pubKey *ecies.PublicKey, log zerolog.Logger) {
+func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config,
+	dataChan chan map[string]string, pubKey *ecies.PublicKey, log zerolog.Logger) {
 	defer wg.Done()
 	l := log.With().Str("func", "worker").Logger()
 	reqTicker := time.NewTicker(cfg.ReportInterval)
@@ -330,7 +331,6 @@ func parsePubKey(path string) (*ecies.PublicKey, error) {
 // The function reads the public key from the file, decodes the PEM-encoded certificate,
 // parses the certificate to get the public key, and then uses that public key to encrypt the data.
 func encryptData(data []byte, publicKey *ecies.PublicKey) ([]byte, error) {
-
 	// Encrypt the data
 	cipherdata, err := ecies.Encrypt(crand.Reader, publicKey, data, nil, nil)
 	if err != nil {
