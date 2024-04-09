@@ -27,24 +27,6 @@ dIm8OZfjEa610lCZyPcBBKVLZHfwIGw=
 	os.Remove("/tmp/key.pem")
 }
 
-// Func TestTerminateMiddlewareWithValidBody(t *testing.T) {
-//	log := zerolog.Nop()
-//	privkey, _ := ecies.GenerateKey(rand.Reader, elliptic.P384(), nil)
-//
-//	handler := Terminate(log, privkey)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-//
-//	plaintext := []byte("Hello, World!")
-//	cyphertext, _ := ecies.Encrypt(rand.Reader, &privkey.PublicKey, plaintext, nil, nil)
-//
-//	req := httptest.NewRequest("POST", "/", bytes.NewReader(cyphertext))
-//	w := httptest.NewRecorder()
-//
-//	handler.ServeHTTP(w, req)
-//
-//	assert.Equal(t, http.StatusOK, w.Code)
-//	assert.Equal(t, plaintext, w.Body.Bytes())
-//}.
-
 func TestTerminateMiddlewareWithInvalidBody(t *testing.T) {
 	log := zerolog.Nop()
 	privkey, _ := ecies.GenerateKey(rand.Reader, ecies.DefaultCurve, nil)

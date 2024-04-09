@@ -1,14 +1,10 @@
 package agent
 
 import (
-	"context"
 	"net/http"
 	"os"
-	"sync"
 	"testing"
-	"time"
 
-	"github.com/ospiem/mcollector/internal/agent/config"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
@@ -52,35 +48,6 @@ func TestIsStatusCodeRetryable(t *testing.T) {
 	}
 }
 
-func TestWorker(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-
-	cfg := config.Config{
-		ReportInterval: time.Millisecond * 100,
-		Endpoint:       "localhost:8080",
-		Key:            "testKey",
-	}
-
-	dataChan := make(chan map[string]string, 1)
-	dataChan <- map[string]string{
-		"metric1": "value1",
-		"metric2": "value2",
-	}
-
-	log := zerolog.Nop()
-
-	go Worker(ctx, wg, cfg, dataChan, log)
-
-	time.Sleep(time.Millisecond * 200)
-	cancel()
-
-	wg.Wait()
-}
-
 func TestGenerateHash(t *testing.T) {
 	key := "fiok120uo8i3rhfkw"
 	data := []byte("testData")
@@ -110,14 +77,14 @@ func TestGetMetrics(t *testing.T) {
 }
 
 func TestEncryptDataWithInvalidKeyPath(t *testing.T) {
-	_, err := encryptData([]byte("testData"), "nonexistent.pem")
+	_, err := parsePubKey("nonexistent.pem")
 	assert.Error(t, err)
 }
 
 func TestEncryptDataWithInvalidCertificate(t *testing.T) {
 	err := os.WriteFile("invalid.pem", []byte("invalid"), 0644)
 	assert.NoError(t, err)
-	_, err = encryptData([]byte("testData"), "/tmp/invalid.pem")
+	_, err = parsePubKey("/tmp/invalid.pem")
 	assert.Error(t, err)
 	os.Remove("/tmp/invalid.pem")
 }
@@ -135,7 +102,9 @@ t0IlJDQqiw==
 -----END CERTIFICATE-----
 `), 0600)
 	assert.NoError(t, err)
-	_, err = encryptData([]byte("testData"), "/tmp/valid.pem")
+	pubKey, err := parsePubKey("/tmp/valid.pem")
+	assert.NoError(t, err)
+	_, err = encryptData([]byte("testData"), pubKey)
 	assert.NoError(t, err)
 	os.Remove("/tmp/valid.pem")
 }

@@ -109,16 +109,23 @@ func Run(logger zerolog.Logger) error {
 
 	jobs := make(chan map[string]string, cfg.RateLimit)
 
+	pubKey, err := parsePubKey(cfg.CryptoKey)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to parse public key")
+	}
+
 	for i := 0; i < cfg.RateLimit; i++ {
 		wg.Add(1)
-		go Worker(ctx, wg, cfg, jobs, logger)
+		go Worker(ctx, wg, cfg, jobs, pubKey, logger)
 	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			metrics := mc.Pop()
+			fmt.Println(metrics)
 			metrircsSlice := createMetricSlice(metrics, &logger)
-			if err := doRequestWithJSON(cfg, metrircsSlice, &logger); err != nil {
+			if err := doRequestWithJSON(cfg, metrircsSlice, pubKey, &logger); err != nil {
 				logger.Error().Err(err).Msg("failed to send last metrics")
 			}
 			return nil
@@ -163,8 +170,7 @@ func (mc *MetricsCollection) Pop() map[string]string {
 }
 
 // Worker represents a worker that processes metrics.
-func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config,
-	dataChan chan map[string]string, log zerolog.Logger) {
+func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, dataChan chan map[string]string, pubKey *ecies.PublicKey, log zerolog.Logger) {
 	defer wg.Done()
 	l := log.With().Str("func", "worker").Logger()
 	reqTicker := time.NewTicker(cfg.ReportInterval)
@@ -191,8 +197,8 @@ func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config,
 				}
 
 				var opError *net.OpError
-				l.Debug().Msg("Trying to send request")
-				err := doRequestWithJSON(cfg, metricSlice, &log)
+				l.Debug().Msg("Sending metrics to the server")
+				err := doRequestWithJSON(cfg, metricSlice, pubKey, &log)
 				if err == nil {
 					break
 				}
@@ -214,7 +220,7 @@ func Worker(ctx context.Context, wg *sync.WaitGroup, cfg config.Config,
 
 // createMetricSlice creates a slice of metrics from a map.
 func createMetricSlice(metrics map[string]string, l *zerolog.Logger) []models.Metrics {
-	metricSlice := make([]models.Metrics, len(metrics), 0)
+	metricSlice := make([]models.Metrics, 0, len(metrics))
 	var pollIncrement int64 = 1
 
 	for name, value := range metrics {
@@ -234,7 +240,7 @@ func createMetricSlice(metrics map[string]string, l *zerolog.Logger) []models.Me
 }
 
 // doRequestWithJSON sends a request with JSON data.
-func doRequestWithJSON(cfg config.Config, metrics []models.Metrics, l *zerolog.Logger) error {
+func doRequestWithJSON(cfg config.Config, metrics []models.Metrics, pubKey *ecies.PublicKey, l *zerolog.Logger) error {
 	const wrapError = "do request error"
 
 	jsonData, err := json.Marshal(metrics)
@@ -242,7 +248,7 @@ func doRequestWithJSON(cfg config.Config, metrics []models.Metrics, l *zerolog.L
 		return fmt.Errorf("error marshaling JSON: %w", err)
 	}
 
-	encryptedData, err := encryptData(jsonData, cfg.CryptoKey)
+	encryptedData, err := encryptData(jsonData, pubKey)
 	if err != nil {
 		return fmt.Errorf("cannot encrypt data: %w", err)
 	}
@@ -286,12 +292,11 @@ func doRequestWithJSON(cfg config.Config, metrics []models.Metrics, l *zerolog.L
 	return nil
 }
 
-// encryptData encrypts the provided data using the public key from the provided file.
-// The function reads the public key from the file, decodes the PEM-encoded certificate,
-// parses the certificate to get the public key, and then uses that public key to encrypt the data.
-func encryptData(data []byte, key string) ([]byte, error) {
+// parsePubKey reads a PEM-encoded public key from a file, decodes it,
+// parses it into and ECDSA public key and then imports it into an ECIES public key.
+func parsePubKey(path string) (*ecies.PublicKey, error) {
 	// Read the certificate from the file
-	publicKeyPEM, err := os.ReadFile(key)
+	publicKeyPEM, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open public key: %w", err)
 	}
@@ -318,8 +323,16 @@ func encryptData(data []byte, key string) ([]byte, error) {
 	// Import the ECDSA public key to an ECIES public key
 	publicKeyECIES := ecies.ImportECDSAPublic(ecdsaPublicKey)
 
+	return publicKeyECIES, nil
+}
+
+// encryptData encrypts the provided data using the public key from the provided file.
+// The function reads the public key from the file, decodes the PEM-encoded certificate,
+// parses the certificate to get the public key, and then uses that public key to encrypt the data.
+func encryptData(data []byte, publicKey *ecies.PublicKey) ([]byte, error) {
+
 	// Encrypt the data
-	cipherdata, err := ecies.Encrypt(crand.Reader, publicKeyECIES, data, nil, nil)
+	cipherdata, err := ecies.Encrypt(crand.Reader, publicKey, data, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt data: %w", err)
 	}
