@@ -18,6 +18,8 @@ cmd/server/main
 cmd/server/server
 cmd/metricstest
 cmd/staticlint/linter
+cmd/gencryptokeys/gencryptokeys
+keys/
 # Dependency directories (remove the comment below to include it)
 vendor/
 

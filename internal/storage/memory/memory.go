@@ -76,3 +76,7 @@ func (mem *MemStorage) InsertBatch(ctx context.Context, metrics []models.Metrics
 func (mem *MemStorage) Ping(ctx context.Context) error {
 	return nil
 }
+
+func (mem *MemStorage) Close(ctx context.Context) error {
+	return nil
+}

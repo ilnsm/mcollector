@@ -27,7 +27,13 @@ func ParseFlag(c *Config) {
 		flag.StringVar(&c.LogLevel, "log", "error", "Configure the agent's log level")
 	}
 	if flag.Lookup("l") == nil {
-		flag.IntVar(&c.RateLimit, "l", 1, "define number of workers to send metrics")
+		flag.IntVar(&c.RateLimit, "l", 1, "define the number of workers to send metrics")
+	}
+	if flag.Lookup("crypto-key") == nil {
+		flag.StringVar(&c.CryptoKey, "crypto-key", "", "define the public key")
+	}
+	if flag.Lookup("config") == nil {
+		flag.StringVar(&c.Config, "config", "", "define the config file in JSON format")
 	}
 	flag.Parse()
 

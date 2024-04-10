@@ -227,19 +227,20 @@ func (f *FileStorage) flushMetrics(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("filestorage flusmetrics: %w", err)
 	}
-	log.Debug().Msg("try to flush counters")
 	if err = flushCounters(p, counters); err != nil {
 		return fmt.Errorf("%s: %w", wrapError, err)
 	}
+	log.Debug().Msg("flushed counters")
 
 	gauges, err := f.m.GetGauges(ctx)
 	if err != nil {
 		return fmt.Errorf("filestorage flusmetrics: %w", err)
 	}
-	log.Debug().Msg("try to flush gauges")
 	if err = flushGauges(p, gauges); err != nil {
 		return fmt.Errorf("%s: %w", wrapError, err)
 	}
+	log.Debug().Msg("flushed gauges")
+
 	return nil
 }
 
@@ -304,4 +305,8 @@ func flushGauges(p *producer, c map[string]float64) error {
 		}
 	}
 	return nil
+}
+
+func (f *FileStorage) Close(ctx context.Context) error {
+	return f.flushMetrics(ctx)
 }

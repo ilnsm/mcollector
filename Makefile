@@ -16,7 +16,7 @@ server:
 
 .PHONY: run_server
 run_server: server postgres
-	@./cmd/server/server
+	@./cmd/server/server -crypto-key='./keys/privkey.pem' -d='postgres://mcollector:supersecretpassword@localhost:5432/metrics?sslmode=disable' -l debug
 
 .PHONY: run_agent
 run_agent: agent
