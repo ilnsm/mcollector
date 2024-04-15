@@ -18,6 +18,7 @@ func TestNew(t *testing.T) {
 		assert.Equal(t, true, c.StoreConfig.Restore)
 		assert.Equal(t, "", c.StoreConfig.DatabaseDsn)
 		assert.Equal(t, "", c.Key)
+		assert.Equal(t, "", c.TrustedSubnet)
 	})
 
 	t.Run("returns updated config when environment variables are set", func(t *testing.T) {
@@ -25,6 +26,7 @@ func TestNew(t *testing.T) {
 		t.Setenv("LOG_LEVEL", "debug")
 		t.Setenv("KEY", "testkey")
 		t.Setenv("CRYPTO_KEY", "testkey")
+		t.Setenv("TRUSTED_SUBNET", "192.168.0.0/24")
 
 		c, err := config.New()
 		assert.NoError(t, err)
@@ -32,5 +34,6 @@ func TestNew(t *testing.T) {
 		assert.Equal(t, "debug", c.LogLevel)
 		assert.Equal(t, "testkey", c.Key)
 		assert.Equal(t, "testkey", c.CryptoKey)
+		assert.Equal(t, "192.168.0.0/24", c.TrustedSubnet)
 	})
 }

@@ -38,6 +38,9 @@ func ParseFlag(c *Config) {
 	if flag.Lookup("config") == nil {
 		flag.StringVar(&c.Config, "config", "", "define the config file in JSON format")
 	}
+	if flag.Lookup("t") == nil {
+		flag.StringVar(&c.Config, "t", "", "define the trusted subnet to allow connections from")
+	}
 
 	flag.Parse()
 	c.StoreConfig.StoreInterval = time.Duration(i) * time.Second
