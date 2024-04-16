@@ -32,20 +32,23 @@ func Check(log *zerolog.Logger, subnet *net.IPNet) func(next http.Handler) http.
 			if stringIP == "" {
 				l.Debug().Msg("could not get source IP address")
 				http.Error(w, "", http.StatusForbidden)
+				return
 			}
-			l.Debug().Msgf("X-Real-IP: %s", stringIP)
 
 			ip := net.ParseIP(stringIP)
 			if ip == nil {
 				l.Debug().Msg("failed to parse IP address")
 				http.Error(w, "", http.StatusForbidden)
+				return
 			}
 
 			if !subnet.Contains(ip) {
 				l.Debug().Msgf("IP not allowed: %v", ip)
 				http.Error(w, "", http.StatusForbidden)
+				return
 			}
 
+			l.Debug().Msgf("X-Real-IP: %s", stringIP)
 			next.ServeHTTP(w, r)
 		})
 	}

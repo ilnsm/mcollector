@@ -52,7 +52,6 @@ func New() (Config, error) {
 		wrapErr := fmt.Errorf("parse tmp error: %w", err)
 		return c, wrapErr
 	}
-
 	err = env.Parse(&c)
 	if err != nil {
 		wrapErr := fmt.Errorf("new server config error: %w", err)
@@ -63,7 +62,6 @@ func New() (Config, error) {
 	if tmp.StoreInterval > 0 {
 		c.StoreConfig.StoreInterval = time.Duration(tmp.StoreInterval) * time.Second
 	}
-
 	// Parse the configuration file (if provided)
 	err = c.parseConfigFileJSON()
 	if err != nil {
@@ -77,6 +75,7 @@ func New() (Config, error) {
 // It only updates a setting if it has not been set by an environment variable.
 func (c *Config) parseConfigFileJSON() error {
 	if c.Config == "" {
+		fmt.Println("Parsed envs")
 		return nil
 	}
 

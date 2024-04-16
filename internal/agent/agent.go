@@ -123,7 +123,6 @@ func Run(logger zerolog.Logger) error {
 		select {
 		case <-ctx.Done():
 			metrics := mc.Pop()
-			fmt.Println(metrics)
 			metrircsSlice := createMetricSlice(metrics, &logger)
 			if err := doRequestWithJSON(cfg, metrircsSlice, pubKey, &logger); err != nil {
 				logger.Error().Err(err).Msg("failed to send last metrics")

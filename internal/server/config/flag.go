@@ -39,7 +39,7 @@ func ParseFlag(c *Config) {
 		flag.StringVar(&c.Config, "config", "", "define the config file in JSON format")
 	}
 	if flag.Lookup("t") == nil {
-		flag.StringVar(&c.Config, "t", "", "define the trusted subnet to allow connections from")
+		flag.StringVar(&c.TrustedSubnet, "t", "", "define the trusted subnet to allow connections from")
 	}
 
 	flag.Parse()
