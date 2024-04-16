@@ -2,62 +2,121 @@ package trusted_subnet
 
 import (
 	"net"
-	"os"
-	"reflect"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/rs/zerolog"
 )
 
-//func TestCheck(t *testing.T) {
-//	type args struct {
-//		log    *zerolog.Logger
-//		subnet *net.IPNet
-//	}
-//	tests := []struct {
-//		name string
-//		args args
-//		want func(next http.Handler) http.Handler
-//	}{
-//		{
-//			"",
-//		},
-//	}
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			if got := Check(tt.args.log, tt.args.subnet); !reflect.DeepEqual(got, tt.want) {
-//				t.Errorf("Check() = %v, want %v", got, tt.want)
-//			}
-//		})
-//	}
-//}
+func TestCheck(t *testing.T) {
+	tests := []struct {
+		name     string
+		header   string
+		subnet   *net.IPNet
+		expected bool
+	}{
+		{
+			name:   "Trusted IP",
+			header: "192.168.3.1",
+			subnet: &net.IPNet{
+				IP:   net.ParseIP("192.168.3.0"),
+				Mask: net.CIDRMask(24, 32),
+			},
+			expected: true,
+		},
+		{
+			name:   "Untrusted IP",
+			header: "192.168.15.1",
+			subnet: &net.IPNet{
+				IP:   net.ParseIP("192.168.3.0"),
+				Mask: net.CIDRMask(24, 32),
+			},
+			expected: false,
+		},
+		{
+			name:   "Invalid IP in header",
+			header: "292.168.3.1",
+			subnet: &net.IPNet{
+				IP:   net.ParseIP("192.168.3.0"),
+				Mask: net.CIDRMask(24, 32),
+			},
+			expected: false,
+		},
+		{
+			name:   "Header not provided",
+			header: "",
+			subnet: &net.IPNet{
+				IP:   net.ParseIP("192.168.3.0"),
+				Mask: net.CIDRMask(24, 32),
+			},
+			expected: false,
+		},
+	}
+	l := zerolog.Logger{}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodGet, "/test", nil)
+			request.Header.Set("X-Real-IP", tt.header)
+
+			handler := Check(&l, tt.subnet)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			}))
+
+			handler.ServeHTTP(w, request)
+
+			if tt.expected {
+				if w.Code != http.StatusOK {
+					t.Errorf("expected status code %d, go %d", http.StatusOK, w.Code)
+				}
+			} else {
+				if w.Code != http.StatusForbidden {
+					t.Errorf("expected status code %d, go %d", http.StatusForbidden, w.Code)
+				}
+			}
+		})
+	}
+}
 
 func TestIsValid(t *testing.T) {
 	tests := []struct {
 		name   string
 		subnet string
-		IPNet  *net.IPNet
-		want   bool
+		want   *net.IPNet
+		valid  bool
 	}{
 		{
 			name:   "valid subnet",
 			subnet: "192.168.3.1/24",
-			IPNet: &net.IPNet{
-				IP:   net.ParseIP("192.168.3.1"),
-				Mask: net.IPMask(net.ParseIP("255.255.255.0").To4()),
+			want: &net.IPNet{
+				IP:   net.ParseIP("192.168.3.0"),
+				Mask: net.CIDRMask(24, 32),
 			},
-			want: true,
+			valid: true,
+		},
+		{
+			name:   "invalid subnet",
+			subnet: "292.168.3.1/24",
+			want: &net.IPNet{
+				IP:   net.ParseIP("192.168.3.0"),
+				Mask: net.CIDRMask(24, 32),
+			},
+			valid: false,
 		},
 	}
-	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+	l := zerolog.Logger{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ip, subnet := IsValid(&logger, tt.subnet)
-			if !reflect.DeepEqual(ip, tt.IPNet.IP) {
-				t.Errorf("IsValid() ip = %v, IPNet %v", ip, tt.IPNet)
+			got, ok := IsValid(&l, tt.subnet)
+			if ok != tt.valid {
+				t.Errorf("validating error, want: %t, got: %t", tt.valid, ok)
 			}
-			if !reflect.DeepEqual(subnet, tt.IPNet.Mask) {
-				t.Errorf("IsValid() ip = %v, IPNet %v", ip, tt.IPNet)
+
+			if tt.valid {
+				if got.String() != tt.want.String() {
+					t.Errorf("got wrong subnet, want: %v, got: %v", tt.want, got)
+				}
 			}
 		})
 	}
