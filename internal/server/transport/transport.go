@@ -17,7 +17,7 @@ import (
 	"github.com/ospiem/mcollector/internal/server/middleware/hash"
 	"github.com/ospiem/mcollector/internal/server/middleware/logger"
 	"github.com/ospiem/mcollector/internal/server/middleware/ssl"
-	"github.com/ospiem/mcollector/internal/server/middleware/trusted_subnet"
+	trustedsubnet "github.com/ospiem/mcollector/internal/server/middleware/trusted_subnet"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -95,8 +95,8 @@ func (a *API) registerAPI() chi.Router {
 	// Create a new router.
 	r := chi.NewRouter()
 
-	if subnet, ok := trusted_subnet.IsValid(&a.Log, a.Cfg.TrustedSubnet); ok {
-		r.Use(trusted_subnet.Check(&a.Log, subnet))
+	if subnet, ok := trustedsubnet.IsValid(&a.Log, a.Cfg.TrustedSubnet); ok {
+		r.Use(trustedsubnet.Check(&a.Log, subnet))
 	}
 
 	// Set up the middleware for the router.

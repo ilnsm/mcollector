@@ -28,7 +28,7 @@ test: server agent postgres
 
 .PHONY: postgres
 postgres:
-	@docker compose up -d postgres
+	@docker compose up postgres
 
 .PHONY: lint
 lint: _golangci-lint-rm-unformatted-report

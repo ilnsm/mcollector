@@ -31,8 +31,8 @@ type JSONConfig struct {
 	StoreFile     string `json:"store_file"`
 	DatabaseDsn   string `json:"database_dsn"`
 	CryptoKey     string `json:"crypto_key"`
-	Restore       bool   `json:"restore"`
 	TrustedSubnet string `json:"trusted_subnet"`
+	Restore       bool   `json:"restore"`
 }
 
 // tmpDurations represents temporary durations for parsing environment variables.

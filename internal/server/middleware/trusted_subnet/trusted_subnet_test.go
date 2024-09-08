@@ -1,4 +1,4 @@
-package trusted_subnet
+package trustedsubnet
 
 import (
 	"net"

@@ -1,4 +1,4 @@
-package trusted_subnet
+package trustedsubnet
 
 import (
 	"net"
@@ -22,7 +22,8 @@ func IsValid(logger *zerolog.Logger, subnet string) (*net.IPNet, bool) {
 
 // Check returns a middleware that checks if the source IP of the request is contained in the provided subnet.
 // If the source IP is not contained in the subnet, it logs a debug message and responds with a 403 Forbidden status.
-// If the source IP cannot be parsed or is not found in the request headers, it also responds with a 403 Forbidden status.
+// If the source IP cannot be parsed or is not found in the request headers,
+// it also responds with a 403 Forbidden status.
 func Check(log *zerolog.Logger, subnet *net.IPNet) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
