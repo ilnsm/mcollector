@@ -4,7 +4,6 @@ package transport
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -423,7 +422,6 @@ func UpdateSliceOfMetrics(a *API) http.HandlerFunc {
 		}
 		for _, m := range metrics {
 			if !(m.MType == models.Gauge || m.MType == models.Counter) {
-				fmt.Println(m.MType)
 				http.Error(w, "Invalid metric type", http.StatusBadRequest)
 				return
 			}

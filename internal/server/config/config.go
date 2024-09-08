@@ -75,7 +75,6 @@ func New() (Config, error) {
 // It only updates a setting if it has not been set by an environment variable.
 func (c *Config) parseConfigFileJSON() error {
 	if c.Config == "" {
-		fmt.Println("Parsed envs")
 		return nil
 	}
 
