@@ -69,7 +69,6 @@ func Run(logger zerolog.Logger) error {
 	// Initialize the s.
 	s, err := storage.New(ctx, cfg.StoreConfig)
 	if err != nil {
-		fmt.Println(err)
 		return fmt.Errorf("failed to initialize s: %w", err)
 	}
 

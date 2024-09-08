@@ -15,12 +15,13 @@ import (
 
 // Config represents the server configuration settings.
 type Config struct {
-	Endpoint    string           `env:"ADDRESS"`    // Endpoint is the server address.
-	Config      string           `env:"CONFIG"`     // Config is path to the config file.
-	CryptoKey   string           `env:"CRYPTO_KEY"` // CryptoKey is used to decrypt the request.
-	LogLevel    string           `env:"LOG_LEVEL"`  // LogLevel is the logging level.
-	Key         string           `env:"KEY"`        // Key is used for hashing func.
-	StoreConfig storeConf.Config // StoreConfig holds configuration for storage.
+	Endpoint      string           `env:"ADDRESS"`        // Endpoint is the server address.
+	Config        string           `env:"CONFIG"`         // Config is path to the config file.
+	CryptoKey     string           `env:"CRYPTO_KEY"`     // CryptoKey is used to decrypt the request.
+	LogLevel      string           `env:"LOG_LEVEL"`      // LogLevel is the logging level.
+	Key           string           `env:"KEY"`            // Key is used for hashing func.
+	TrustedSubnet string           `env:"TRUSTED_SUBNET"` // TrustedSubnet is CIDR which allow incoming connections
+	StoreConfig   storeConf.Config // StoreConfig holds configuration for storage.
 }
 
 // JSONConfig represents the configuration settings in JSON format.
@@ -30,6 +31,7 @@ type JSONConfig struct {
 	StoreFile     string `json:"store_file"`
 	DatabaseDsn   string `json:"database_dsn"`
 	CryptoKey     string `json:"crypto_key"`
+	TrustedSubnet string `json:"trusted_subnet"`
 	Restore       bool   `json:"restore"`
 }
 
@@ -50,7 +52,6 @@ func New() (Config, error) {
 		wrapErr := fmt.Errorf("parse tmp error: %w", err)
 		return c, wrapErr
 	}
-
 	err = env.Parse(&c)
 	if err != nil {
 		wrapErr := fmt.Errorf("new server config error: %w", err)
@@ -61,7 +62,6 @@ func New() (Config, error) {
 	if tmp.StoreInterval > 0 {
 		c.StoreConfig.StoreInterval = time.Duration(tmp.StoreInterval) * time.Second
 	}
-
 	// Parse the configuration file (if provided)
 	err = c.parseConfigFileJSON()
 	if err != nil {
@@ -108,6 +108,9 @@ func (c *Config) parseConfigFileJSON() error {
 	}
 	if c.CryptoKey == "" {
 		c.CryptoKey = tmp.CryptoKey
+	}
+	if c.TrustedSubnet == "" {
+		c.TrustedSubnet = tmp.TrustedSubnet
 	}
 	if c.StoreConfig.FileStoragePath == "" {
 		c.StoreConfig.FileStoragePath = tmp.StoreFile

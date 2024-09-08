@@ -123,7 +123,6 @@ func Run(logger zerolog.Logger) error {
 		select {
 		case <-ctx.Done():
 			metrics := mc.Pop()
-			fmt.Println(metrics)
 			metrircsSlice := createMetricSlice(metrics, &logger)
 			if err := doRequestWithJSON(cfg, metrircsSlice, pubKey, &logger); err != nil {
 				logger.Error().Err(err).Msg("failed to send last metrics")
@@ -269,7 +268,11 @@ func doRequestWithJSON(cfg config.Config, metrics []models.Metrics, pubKey *ecie
 	if err != nil {
 		return fmt.Errorf("generate request %s: %w", wrapError, err)
 	}
-
+	hostIP, err := getHostIP()
+	if err != nil {
+		l.Error().Err(err).Msg("failed to get host IP")
+	}
+	request.Header.Set("X-Real-IP", hostIP)
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Content-Encoding", "gzip")
 	if cfg.Key != "" {
@@ -291,6 +294,24 @@ func doRequestWithJSON(cfg config.Config, metrics []models.Metrics, pubKey *ecie
 	}
 
 	return nil
+}
+
+// getHostIP retrieves the IP addresses of all network interfaces on the host,
+// and returns the first non-loopback IP address it finds. If it doesn't find
+// any non-loopback IP addresses, it returns an error.
+func getHostIP() (string, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "", fmt.Errorf("failed to get interfaces: %w", err)
+	}
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String(), nil
+			}
+		}
+	}
+	return "", fmt.Errorf("could not find non-loopback IP address")
 }
 
 // parsePubKey reads a PEM-encoded public key from a file, decodes it,

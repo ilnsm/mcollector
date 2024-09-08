@@ -16,11 +16,11 @@ server:
 
 .PHONY: run_server
 run_server: server postgres
-	@./cmd/server/server -crypto-key='./keys/privkey.pem' -d='postgres://mcollector:supersecretpassword@localhost:5432/metrics?sslmode=disable' -l debug
+	@./cmd/server/server -crypto-key='./keys/privkey.pem' -d='postgres://mcollector:supersecretpassword@localhost:5432/metrics?sslmode=disable' -l debug -t='192.168.0.1/16'
 
 .PHONY: run_agent
 run_agent: agent
-	@./cmd/agent/agent -p 1 -r 1 -log debug
+	@./cmd/agent/agent -p 1 -r 1 -log debug -crypto-key='./keys/cert.pem'
 
 .PHONY: test
 test: server agent postgres
@@ -28,7 +28,7 @@ test: server agent postgres
 
 .PHONY: postgres
 postgres:
-	@docker compose up -d postgres
+	@docker compose up postgres
 
 .PHONY: lint
 lint: _golangci-lint-rm-unformatted-report
@@ -60,6 +60,10 @@ _golangci-lint-rm-unformatted-report: _golangci-lint-format-report
 golangci-lint-clean:
 	sudo rm -rf ./golangci-lint matted.json > ./golangci-lint/report.json
 
-.PHONY:
+.PHONY: truncate
 truncate:
 	@docker exec mcollector-postgres psql -U mcollector -d metrics -c 'truncate table counters, gauges;'
+
+.PHONY: psql
+psql:
+	@docker exec -it mcollector-postgres psql -U mcollector -d metrics

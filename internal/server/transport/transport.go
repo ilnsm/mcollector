@@ -4,7 +4,6 @@ package transport
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -17,6 +16,7 @@ import (
 	"github.com/ospiem/mcollector/internal/server/middleware/hash"
 	"github.com/ospiem/mcollector/internal/server/middleware/logger"
 	"github.com/ospiem/mcollector/internal/server/middleware/ssl"
+	trustedsubnet "github.com/ospiem/mcollector/internal/server/middleware/trusted_subnet"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -93,6 +93,10 @@ func (a *API) registerAPI() chi.Router {
 
 	// Create a new router.
 	r := chi.NewRouter()
+
+	if subnet, ok := trustedsubnet.IsValid(&a.Log, a.Cfg.TrustedSubnet); ok {
+		r.Use(trustedsubnet.Check(&a.Log, subnet))
+	}
 
 	// Set up the middleware for the router.
 	r.Use(middleware.Recoverer)
@@ -418,7 +422,6 @@ func UpdateSliceOfMetrics(a *API) http.HandlerFunc {
 		}
 		for _, m := range metrics {
 			if !(m.MType == models.Gauge || m.MType == models.Counter) {
-				fmt.Println(m.MType)
 				http.Error(w, "Invalid metric type", http.StatusBadRequest)
 				return
 			}
